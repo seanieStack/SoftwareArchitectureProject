@@ -8,7 +8,11 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 interface BorrowRepository extends JpaRepository<Borrow, Long> {
-    List<Borrow> findByDeadlineBeforeAndStatus(LocalDateTime now,  BorrowStatus status);
+    List<Borrow> findByDeadlineBeforeAndStatus(LocalDateTime now, BorrowStatus status);
 
     List<Borrow> findByStatus(BorrowStatus status);
+
+    List<Borrow> findByUserId(Long userId);
+
+    boolean existsByBookIdAndStatusIn(Long bookId, List<BorrowStatus> statuses);
 }

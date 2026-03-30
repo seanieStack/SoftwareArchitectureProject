@@ -22,8 +22,15 @@ public class Borrow {
 
     private Long userId;
 
+    private Long bookId;
+
+    @Enumerated(EnumType.STRING)
     private BorrowStatus status;
 
+    private LocalDateTime borrowedAt;
+
     private LocalDateTime deadline;
+
+    private LocalDateTime returnedAt;
 
 }

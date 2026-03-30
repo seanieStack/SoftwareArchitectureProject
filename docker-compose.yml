@@ -63,9 +63,11 @@ services:
       SPRING_RABBITMQ_HOST: rabbitmq
       SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER}
       SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      CORE_SERVICE_URL: http://core-service:8081
     depends_on:
       - support-db
       - rabbitmq
+      - core-service
 
   frontend:
     build: ./frontend
