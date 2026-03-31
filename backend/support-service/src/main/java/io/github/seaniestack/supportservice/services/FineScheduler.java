@@ -16,12 +16,12 @@ public class FineScheduler {
 
     @Scheduled(cron = "0 0 0 * * *")
     public void processOverdueBorrows(){
-        log.info("Processing overdueBorrows");
+        log.info("Processing overdue borrows");
         LocalDateTime now = LocalDateTime.now();
 
         fineService.processNewlyOverdue(now);
         fineService.updateAccruingFines(now);
 
-        log.info("Processing overdueBorrows done");
+        log.info("Processing overdue borrows done");
     }
 }

@@ -5,6 +5,8 @@ import io.github.seaniestack.supportservice.entities.Borrow;
 import io.github.seaniestack.supportservice.entities.BorrowStatus;
 import io.github.seaniestack.supportservice.entities.Fine;
 import io.github.seaniestack.supportservice.exceptions.ResourceNotFoundException;
+import io.github.seaniestack.supportservice.messaging.EventPublisher;
+import io.github.seaniestack.supportservice.messaging.events.FineCreatedEvent;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +28,7 @@ public class FineService {
 
     private final FineRepository fineRepository;
     private final BorrowRepository borrowRepository;
+    private final EventPublisher eventPublisher;
 
     public List<FineDTO> getUnacknowledgedFines(Long userId) {
         log.debug("Fetching unacknowledged fines for user {}", userId);
@@ -90,6 +93,8 @@ public class FineService {
                         .build();
                 fineRepository.save(fine);
                 log.info("Created initial fine of {} for borrow {} (user {})", DAILY_RATE, borrow.getId(), borrow.getUserId());
+                eventPublisher.publishFineCreated(new FineCreatedEvent(
+                        fine.getId(), borrow.getId(), borrow.getUserId(), fine.getAmount()));
             }
         }
     }
@@ -120,6 +125,8 @@ public class FineService {
                                         .build();
                                 fineRepository.save(fine);
                                 log.info("Created new fine of {} for borrow {} (user {}) - previous fine was paid", DAILY_RATE, borrow.getId(), borrow.getUserId());
+                                eventPublisher.publishFineCreated(new FineCreatedEvent(
+                                        fine.getId(), borrow.getId(), borrow.getUserId(), fine.getAmount()));
                             }
                     );
         }

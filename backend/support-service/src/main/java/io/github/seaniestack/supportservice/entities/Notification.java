@@ -9,12 +9,12 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "borrows")
+@Table(name = "notifications")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Borrow {
+public class Notification {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -22,15 +22,12 @@ public class Borrow {
 
     private Long userId;
 
-    private Long bookId;
-
     @Enumerated(EnumType.STRING)
-    private BorrowStatus status;
+    private NotificationType type;
 
-    private LocalDateTime borrowedAt;
+    private String message;
 
-    private LocalDateTime deadline;
+    private boolean read;
 
-    private LocalDateTime returnedAt;
-
+    private LocalDateTime createdAt;
 }
