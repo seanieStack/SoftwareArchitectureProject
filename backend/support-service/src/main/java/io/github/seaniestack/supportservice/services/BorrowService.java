@@ -6,6 +6,8 @@ import io.github.seaniestack.supportservice.dtos.BorrowRequest;
 import io.github.seaniestack.supportservice.entities.Borrow;
 import io.github.seaniestack.supportservice.entities.BorrowStatus;
 import io.github.seaniestack.supportservice.exceptions.ResourceNotFoundException;
+import io.github.seaniestack.supportservice.messaging.EventPublisher;
+import io.github.seaniestack.supportservice.messaging.events.BorrowCreatedEvent;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,6 +23,7 @@ public class BorrowService {
 
     private final BorrowRepository borrowRepository;
     private final CoreServiceClient coreServiceClient;
+    private final EventPublisher eventPublisher;
 
     public List<BorrowDTO> getBorrowsForUser(Long userId) {
         log.debug("Fetching borrows for user {}", userId);
@@ -58,7 +61,16 @@ public class BorrowService {
                 .build();
         borrowRepository.save(borrow);
         log.info("Created borrow {} for user {} book {}", borrow.getId(), request.userId(), request.bookId());
+
+        eventPublisher.publishBorrowCreated(new BorrowCreatedEvent(
+                borrow.getId(), borrow.getUserId(), borrow.getBookId(), borrow.getDeadline()));
+
         return BorrowDTO.from(borrow);
+    }
+
+    public List<Borrow> getBorrowsDueBetween(LocalDateTime from, LocalDateTime to) {
+        log.debug("Fetching borrows due between {} and {}", from, to);
+        return borrowRepository.findByDeadlineBetweenAndStatus(from, to, BorrowStatus.BORROWED);
     }
 
     @Transactional
