@@ -1,8 +1,9 @@
-package io.github.seaniestack.supportservice.services;
+package io.github.seaniestack.supportservice.scheduling;
 
 import io.github.seaniestack.supportservice.entities.Borrow;
 import io.github.seaniestack.supportservice.messaging.EventPublisher;
 import io.github.seaniestack.supportservice.messaging.events.BorrowDueSoonEvent;
+import io.github.seaniestack.supportservice.services.BorrowService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;

@@ -4,6 +4,7 @@ import io.github.seaniestack.supportservice.dtos.NotificationDTO;
 import io.github.seaniestack.supportservice.entities.Notification;
 import io.github.seaniestack.supportservice.entities.NotificationType;
 import io.github.seaniestack.supportservice.exceptions.ResourceNotFoundException;
+import io.github.seaniestack.supportservice.repositories.NotificationRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

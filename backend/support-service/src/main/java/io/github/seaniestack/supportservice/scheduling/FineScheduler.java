@@ -1,5 +1,6 @@
-package io.github.seaniestack.supportservice.services;
+package io.github.seaniestack.supportservice.scheduling;
 
+import io.github.seaniestack.supportservice.services.FineService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;

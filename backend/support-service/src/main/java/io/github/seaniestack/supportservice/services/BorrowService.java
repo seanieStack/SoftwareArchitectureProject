@@ -8,6 +8,7 @@ import io.github.seaniestack.supportservice.entities.BorrowStatus;
 import io.github.seaniestack.supportservice.exceptions.ResourceNotFoundException;
 import io.github.seaniestack.supportservice.messaging.EventPublisher;
 import io.github.seaniestack.supportservice.messaging.events.BorrowCreatedEvent;
+import io.github.seaniestack.supportservice.repositories.BorrowRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
