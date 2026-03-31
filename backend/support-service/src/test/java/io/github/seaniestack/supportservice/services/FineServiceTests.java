@@ -5,6 +5,8 @@ import io.github.seaniestack.supportservice.entities.Borrow;
 import io.github.seaniestack.supportservice.entities.BorrowStatus;
 import io.github.seaniestack.supportservice.entities.Fine;
 import io.github.seaniestack.supportservice.exceptions.ResourceNotFoundException;
+import io.github.seaniestack.supportservice.repositories.BorrowRepository;
+import io.github.seaniestack.supportservice.repositories.FineRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
