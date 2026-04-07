@@ -1,0 +1,6 @@
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/supportdb}
+    username: ${DB_USER:supportuser}
+    password: ${DB_PASS:supportpass}
+

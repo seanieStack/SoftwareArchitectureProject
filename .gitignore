@@ -1,1 +1,6 @@
+backend/eureka-server/target
+backend/config-service/target
+backend/api-gateway/target
+backend/support-service/target
+.vscode/settings.json
 .env
