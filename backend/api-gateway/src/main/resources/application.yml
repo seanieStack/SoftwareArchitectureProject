@@ -1,0 +1,93 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      server:
+        webflux:
+          routes:
+            - id: core-service-books
+              uri: lb://core-service
+              predicates:
+                - Path=/api/books/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: core-service-cb
+                    fallbackUri: forward:/fallback/core
+
+            - id: core-service-health
+              uri: lb://core-service
+              predicates:
+                - Path=/api/core-service/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: core-service-cb
+                    fallbackUri: forward:/fallback/core
+
+            - id: support-service-health
+              uri: lb://support-service
+              predicates:
+                - Path=/api/support-service/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: support-service-cb
+                    fallbackUri: forward:/fallback/support
+
+            - id: support-service-fines
+              uri: lb://support-service
+              predicates:
+                - Path=/api/fines/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: support-service-cb
+                    fallbackUri: forward:/fallback/support
+
+            - id: support-service-borrows
+              uri: lb://support-service
+              predicates:
+                - Path=/api/borrows/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: support-service-cb
+                    fallbackUri: forward:/fallback/support
+
+            - id: support-service-notifications
+              uri: lb://support-service
+              predicates:
+                - Path=/api/notifications/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: support-service-cb
+                    fallbackUri: forward:/fallback/support
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka/}
+  instance:
+    prefer-ip-address: true
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      core-service-cb:
+        sliding-window-size: 10
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 10s
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+      support-service-cb:
+        sliding-window-size: 10
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 10s
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
