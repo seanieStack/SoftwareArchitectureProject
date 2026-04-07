@@ -1,0 +1,79 @@
+services:
+  core-db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: ${CORE_DB_USER}
+      POSTGRES_PASSWORD: ${CORE_DB_PASSWORD}
+      POSTGRES_DB: ${CORE_DB_NAME}
+    ports:
+      - "5432:5432"
+    volumes:
+      - core-db-data:/var/lib/postgresql/data
+
+  support-db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: ${SUPPORT_DB_USER}
+      POSTGRES_PASSWORD: ${SUPPORT_DB_PASSWORD}
+      POSTGRES_DB: ${SUPPORT_DB_NAME}
+    ports:
+      - "5433:5432"
+    volumes:
+      - support-db-data:/var/lib/postgresql/data
+
+  rabbitmq:
+    image: rabbitmq:4-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+
+  api-gateway:
+    build: ./backend/api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      CORE_SERVICE_URL: http://core-service:8081
+      SUPPORT_SERVICE_URL: http://support-service:8082
+    depends_on:
+      - core-service
+      - support-service
+
+  core-service:
+    build: ./backend/core-service
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://core-db:5432/${CORE_DB_NAME}
+      SPRING_DATASOURCE_USERNAME: ${CORE_DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${CORE_DB_PASSWORD}
+    depends_on:
+      - core-db
+
+  support-service:
+    build: ./backend/support-service
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://support-db:5432/${SUPPORT_DB_NAME}
+      SPRING_DATASOURCE_USERNAME: ${SUPPORT_DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${SUPPORT_DB_PASSWORD}
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      CORE_SERVICE_URL: http://core-service:8081
+    depends_on:
+      - support-db
+      - rabbitmq
+      - core-service
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "5173:5173"
+
+volumes:
+  core-db-data:
+  support-db-data:
