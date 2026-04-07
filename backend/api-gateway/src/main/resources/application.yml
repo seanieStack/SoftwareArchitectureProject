@@ -17,7 +17,7 @@ spring:
                 - name: CircuitBreaker
                   args:
                     name: core-service-cb
-                    fallbackUri: forward:/fallback/core
+                    fallbackUri: forward:/api/fallback/core
 
             - id: core-service-health
               uri: lb://core-service
@@ -27,7 +27,7 @@ spring:
                 - name: CircuitBreaker
                   args:
                     name: core-service-cb
-                    fallbackUri: forward:/fallback/core
+                    fallbackUri: forward:/api/fallback/core
 
             - id: support-service-health
               uri: lb://support-service
@@ -37,7 +37,7 @@ spring:
                 - name: CircuitBreaker
                   args:
                     name: support-service-cb
-                    fallbackUri: forward:/fallback/support
+                    fallbackUri: forward:/api/fallback/support
 
             - id: support-service-fines
               uri: lb://support-service
@@ -47,7 +47,7 @@ spring:
                 - name: CircuitBreaker
                   args:
                     name: support-service-cb
-                    fallbackUri: forward:/fallback/support
+                    fallbackUri: forward:/api/fallback/support
 
             - id: support-service-borrows
               uri: lb://support-service
@@ -57,7 +57,7 @@ spring:
                 - name: CircuitBreaker
                   args:
                     name: support-service-cb
-                    fallbackUri: forward:/fallback/support
+                    fallbackUri: forward:/api/fallback/support
 
             - id: support-service-notifications
               uri: lb://support-service
@@ -67,7 +67,7 @@ spring:
                 - name: CircuitBreaker
                   args:
                     name: support-service-cb
-                    fallbackUri: forward:/fallback/support
+                    fallbackUri: forward:/api/fallback/support
 
 eureka:
   client:
@@ -75,6 +75,10 @@ eureka:
       defaultZone: ${EUREKA_URI:http://localhost:8761/eureka/}
   instance:
     prefer-ip-address: true
+
+spring.cloud.gateway.server.webflux.httpclient:
+  connect-timeout: 2000
+  response-timeout: 5s
 
 resilience4j:
   circuitbreaker:
@@ -91,3 +95,19 @@ resilience4j:
         wait-duration-in-open-state: 10s
         permitted-number-of-calls-in-half-open-state: 3
         automatic-transition-from-open-to-half-open-enabled: true
+
+  timelimiter:
+    instances:
+      core-service-cb:
+        timeout-duration: 5s
+      support-service-cb:
+        timeout-duration: 5s
+
+  retry:
+    instances:
+      core-service-cb:
+        max-attempts: 3
+        wait-duration: 500ms
+      support-service-cb:
+        max-attempts: 3
+        wait-duration: 500ms
