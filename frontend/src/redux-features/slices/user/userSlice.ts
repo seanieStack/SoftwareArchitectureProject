@@ -68,6 +68,13 @@ const userSlice = createSlice({
       state.loginStatus = 'idle'
       state.registerStatus = 'idle'
     },
+    clearSession(state) {
+      state.profile = null
+      state.loginStatus = 'idle'
+      state.loginError = null
+      state.registerStatus = 'idle'
+      state.registerError = null
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -99,6 +106,6 @@ const userSlice = createSlice({
   },
 })
 
-export const { clearLoginError, clearRegisterError, resetAuthForms } =
+export const { clearLoginError, clearRegisterError, resetAuthForms, clearSession } =
   userSlice.actions
 export const userReducer = userSlice.reducer
