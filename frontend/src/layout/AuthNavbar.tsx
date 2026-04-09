@@ -1,6 +1,5 @@
 import { Link, NavLink } from 'react-router-dom'
 import { APP_ROUTES } from '../constants/routes'
-import { BookIcon } from '../views/components/utils/authIcons'
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
   `text-sm font-medium transition hover:text-emerald-900 ${

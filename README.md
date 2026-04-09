@@ -3,7 +3,7 @@
 A digital library system that allows students and staff to browse, borrow, and manage books and academic resources online. This is build as a full-stack microservices application for CS4135 - Software Architectures.
 
 ## Project Overview
-E-Library is microservice based library platform designed for use by students, staff and admins. Users will be able to browse, search, filter the books available, borrow and return books and recieve notifications for due dates and overdue borrows. Adims will be able to manage (add and remove) books and user accounts.
+E-Library is microservice based library platform designed for use by students, staff and admins. Users will be able to browse, search, filter the books available, borrow and return books and recieve notifications for due dates and overdue borrows. Admins will be able to manage (add and remove) books and user accounts.
 
 The project is build with a react frontend which communicates and a spring cloud gateway, which routes requests to the 2 backend spring microservices.
 
