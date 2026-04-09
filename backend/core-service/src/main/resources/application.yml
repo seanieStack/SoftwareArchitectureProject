@@ -5,13 +5,18 @@ spring:
   application:
     name: core-service
   datasource:
-    url: jdbc:postgresql://localhost:5432/core
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
+    url: jdbc:postgresql://localhost:5432/${CORE_DB_NAME}
+    username: ${CORE_DB_USER}
+    password: ${CORE_DB_PASSWORD}
   jpa:
     hibernate:
       ddl-auto: update
     database-platform: org.hibernate.dialect.PostgreSQLDialect
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER}
+    password: ${RABBITMQ_PASSWORD}
 
 eureka:
   client:
