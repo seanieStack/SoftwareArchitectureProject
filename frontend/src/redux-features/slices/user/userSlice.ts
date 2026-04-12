@@ -5,16 +5,27 @@ import {
   registerRequest,
   type RegisterRequestBody,
 } from './userService'
+import type { AuthResponse } from './authTypes'
+import { clearPersistedAuth, loadPersistedAuth, persistAuthSession } from './persistAuth'
 
 export type AuthAsyncStatus = 'idle' | 'loading' | 'succeeded' | 'failed'
 
+const persisted = loadPersistedAuth()
+
+export type LoginThunkInput = Pick<LoginFormValues, 'email' | 'password'> & {
+  rememberMe: boolean
+}
+
 export const loginUser = createAsyncThunk<
-  unknown,
-  Pick<LoginFormValues, 'email' | 'password'>,
+  AuthResponse,
+  LoginThunkInput,
   { rejectValue: string }
 >('user/login', async (payload, { rejectWithValue }) => {
   try {
-    return await loginRequest(payload)
+    return await loginRequest({
+      email: payload.email,
+      password: payload.password,
+    })
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Login failed'
     return rejectWithValue(message)
@@ -22,7 +33,7 @@ export const loginUser = createAsyncThunk<
 })
 
 export const registerUser = createAsyncThunk<
-  unknown,
+  AuthResponse,
   RegisterRequestBody,
   { rejectValue: string }
 >('user/register', async (payload, { rejectWithValue }) => {
@@ -35,7 +46,8 @@ export const registerUser = createAsyncThunk<
 })
 
 type UserState = {
-  profile: unknown | null
+  accessToken: string | null
+  profile: AuthResponse['user'] | null
   loginStatus: AuthAsyncStatus
   loginError: string | null
   registerStatus: AuthAsyncStatus
@@ -43,7 +55,8 @@ type UserState = {
 }
 
 const initialState: UserState = {
-  profile: null,
+  accessToken: persisted.accessToken,
+  profile: persisted.profile,
   loginStatus: 'idle',
   loginError: null,
   registerStatus: 'idle',
@@ -68,6 +81,15 @@ const userSlice = createSlice({
       state.loginStatus = 'idle'
       state.registerStatus = 'idle'
     },
+    logout(state) {
+      clearPersistedAuth()
+      state.accessToken = null
+      state.profile = null
+      state.loginError = null
+      state.registerError = null
+      state.loginStatus = 'idle'
+      state.registerStatus = 'idle'
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -77,7 +99,9 @@ const userSlice = createSlice({
       })
       .addCase(loginUser.fulfilled, (state, action) => {
         state.loginStatus = 'succeeded'
-        state.profile = action.payload
+        state.accessToken = action.payload.accessToken
+        state.profile = action.payload.user
+        persistAuthSession(action.payload, action.meta.arg.rememberMe)
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.loginStatus = 'failed'
@@ -89,7 +113,9 @@ const userSlice = createSlice({
       })
       .addCase(registerUser.fulfilled, (state, action) => {
         state.registerStatus = 'succeeded'
-        state.profile = action.payload
+        state.accessToken = action.payload.accessToken
+        state.profile = action.payload.user
+        persistAuthSession(action.payload, false)
       })
       .addCase(registerUser.rejected, (state, action) => {
         state.registerStatus = 'failed'
@@ -99,6 +125,6 @@ const userSlice = createSlice({
   },
 })
 
-export const { clearLoginError, clearRegisterError, resetAuthForms } =
+export const { clearLoginError, clearRegisterError, resetAuthForms, logout } =
   userSlice.actions
 export const userReducer = userSlice.reducer

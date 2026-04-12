@@ -35,9 +35,7 @@ export function LoginPage() {
   }, [dispatch])
 
   const onSubmit = (values: LoginFormValues) => {
-    void dispatch(loginUser(values))
-    if (rememberMe) {
-    }
+    void dispatch(loginUser({ ...values, rememberMe }))
   }
 
   return (
@@ -55,15 +53,6 @@ export function LoginPage() {
             role="alert"
           >
             {loginError}
-          </div>
-        ) : null}
-
-        {loginStatus === 'succeeded' ? (
-          <div
-            className="mb-6 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900"
-            role="status"
-          >
-            Signed in successfully.
           </div>
         ) : null}
 

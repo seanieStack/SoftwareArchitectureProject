@@ -66,15 +66,6 @@ export function RegisterPage() {
           </div>
         ) : null}
 
-        {registerStatus === 'succeeded' ? (
-          <div
-            className="mb-6 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900"
-            role="status"
-          >
-            Account created successfully.
-          </div>
-        ) : null}
-
         <form className="space-y-5" onSubmit={handleSubmit(onSubmit)} noValidate>
           <div className="grid gap-5 md:grid-cols-2">
             <IconInput

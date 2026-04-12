@@ -2,6 +2,7 @@ import { API_PATHS } from '../../../constants/api'
 import { getBackendBaseUrl } from '../../../constants/env'
 import type { LoginFormValues } from '../../../validation-schemas/loginSchema'
 import type { SignupFormValues } from '../../../validation-schemas/signupSchema'
+import { authResponseSchema, type AuthResponse } from './authTypes'
 
 function requireBaseUrl(): string {
   const base = getBackendBaseUrl()
@@ -22,9 +23,17 @@ async function parseErrorResponse(res: Response): Promise<string> {
   }
 }
 
+function parseAuthBody(data: unknown): AuthResponse {
+  const parsed = authResponseSchema.safeParse(data)
+  if (!parsed.success) {
+    throw new Error('Invalid response from server')
+  }
+  return parsed.data
+}
+
 export async function loginRequest(
   payload: Pick<LoginFormValues, 'email' | 'password'>,
-): Promise<unknown> {
+): Promise<AuthResponse> {
   const base = requireBaseUrl()
   const res = await fetch(`${base}${API_PATHS.LOGIN}`, {
     method: 'POST',
@@ -34,7 +43,8 @@ export async function loginRequest(
   if (!res.ok) {
     throw new Error(await parseErrorResponse(res))
   }
-  return res.json() as Promise<unknown>
+  const data: unknown = await res.json()
+  return parseAuthBody(data)
 }
 
 export type RegisterRequestBody = Pick<
@@ -44,7 +54,7 @@ export type RegisterRequestBody = Pick<
 
 export async function registerRequest(
   payload: RegisterRequestBody,
-): Promise<unknown> {
+): Promise<AuthResponse> {
   const base = requireBaseUrl()
   const res = await fetch(`${base}${API_PATHS.REGISTER}`, {
     method: 'POST',
@@ -54,5 +64,6 @@ export async function registerRequest(
   if (!res.ok) {
     throw new Error(await parseErrorResponse(res))
   }
-  return res.json() as Promise<unknown>
+  const data: unknown = await res.json()
+  return parseAuthBody(data)
 }
