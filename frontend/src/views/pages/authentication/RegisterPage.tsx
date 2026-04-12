@@ -17,8 +17,6 @@ import { AuthFormFooter } from '../../components/utils/AuthFormFooter'
 import { AuthHeader } from '../../components/utils/AuthHeader'
 import { LockIcon, MailIcon, UserIcon } from '../../components/utils/authIcons'
 import { IconInput } from '../../components/utils/IconInput'
-import { UserTypeSelect } from '../../components/utils/UserTypeSelect'
-
 export function RegisterPage() {
   const dispatch = useAppDispatch()
   const registerStatus = useAppSelector((s) => s.user.registerStatus)
@@ -35,7 +33,6 @@ export function RegisterPage() {
       email: '',
       password: '',
       confirmPassword: '',
-      userType: 'student',
     },
   })
 
@@ -44,8 +41,8 @@ export function RegisterPage() {
   }, [dispatch])
 
   const onSubmit = (values: SignupFormValues) => {
-    const { fullName, email, password, userType } = values
-    void dispatch(registerUser({ fullName, email, password, userType }))
+    const { fullName, email, password } = values
+    void dispatch(registerUser({ fullName, email, password }))
   }
 
   return (
@@ -115,13 +112,6 @@ export function RegisterPage() {
               {...register('confirmPassword')}
             />
           </div>
-
-          <UserTypeSelect
-            id="register-userType"
-            label="User Type"
-            error={errors.userType?.message}
-            {...register('userType')}
-          />
 
           <PrimaryButton loading={registerStatus === 'loading'}>
             Create Account

@@ -35,7 +35,7 @@ public class AuthService {
         if (userRepository.existsByEmailIgnoreCase(email)) {
             throw new EmailAlreadyRegisteredException();
         }
-        UserRole role = UserRole.fromClientValue(request.userType());
+        UserRole role = UserRole.fromRegistrationEmail(email);
 
         User user = new User();
         user.setEmail(email);

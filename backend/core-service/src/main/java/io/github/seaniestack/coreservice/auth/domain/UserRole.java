@@ -7,16 +7,23 @@ public enum UserRole {
     STAFF,
     ADMIN;
 
-    /** Values sent by the frontend: {@code student}, {@code staff}, {@code admin}. */
-    public static UserRole fromClientValue(String raw) {
-        if (raw == null || raw.isBlank()) {
-            throw new IllegalArgumentException("userType is required");
+    /**
+     * Role for self-service registration from email domain.
+     * Admins are hardcoded in the database.
+     */
+    public static UserRole fromRegistrationEmail(String email) {
+        if (email == null || email.isBlank()) {
+            throw new IllegalArgumentException("email is required");
         }
-        try {
-            return UserRole.valueOf(raw.trim().toUpperCase(Locale.ROOT));
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("userType must be one of: student, staff, admin");
+        String e = email.trim().toLowerCase(Locale.ROOT);
+        if (e.endsWith("@studentmail.ul.ie")) {
+            return STUDENT;
         }
+        if (e.endsWith("@ul.ie")) {
+            return STAFF;
+        }
+        throw new IllegalArgumentException(
+                "Registration is only allowed for @studentmail.ul.ie or @ul.ie email addresses");
     }
 
     /** Lowercase label for API responses matching the frontend. */

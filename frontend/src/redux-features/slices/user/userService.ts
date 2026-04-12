@@ -49,7 +49,7 @@ export async function loginRequest(
 
 export type RegisterRequestBody = Pick<
   SignupFormValues,
-  'fullName' | 'email' | 'password' | 'userType'
+  'fullName' | 'email' | 'password'
 >
 
 export async function registerRequest(
