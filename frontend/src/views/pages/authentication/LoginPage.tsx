@@ -22,6 +22,7 @@ export function LoginPage() {
   const navigate = useNavigate()
   const loginStatus = useAppSelector((s) => s.user.loginStatus)
   const loginError = useAppSelector((s) => s.user.loginError)
+  const userType = useAppSelector((s) => s.user.profile?.userType)
   const [rememberMe, setRememberMe] = useState(false)
 
   const {
@@ -39,9 +40,10 @@ export function LoginPage() {
 
   useEffect(() => {
     if (loginStatus === 'succeeded') {
-      navigate(APP_ROUTES.STUDENT_DASHBOARD, { replace: true })
+      const destination = userType === 'admin' ? APP_ROUTES.ADMIN_DASHBOARD : APP_ROUTES.STUDENT_DASHBOARD
+      navigate(destination, { replace: true })
     }
-  }, [loginStatus, navigate])
+  }, [loginStatus, navigate, userType])
 
   const onSubmit = (values: LoginFormValues) => {
     void dispatch(loginUser({ ...values, rememberMe }))
@@ -100,27 +102,16 @@ export function LoginPage() {
               />
               Remember me
             </label>
-            <a
-              href="#"
+            <Link
+              to={APP_ROUTES.FORGOT_PASSWORD}
               className="font-medium text-gray-500 hover:text-emerald-800"
-              onClick={(e) => e.preventDefault()}
             >
               Forgot password?
-            </a>
+            </Link>
           </div>
 
           <PrimaryButton loading={loginStatus === 'loading'}>Sign In</PrimaryButton>
         </form>
-
-        <p className="mt-6 text-center text-sm text-gray-600">
-          Preview the dashboard without signing in:{' '}
-          <Link
-            to={APP_ROUTES.STUDENT_DASHBOARD}
-            className="font-semibold text-emerald-800 hover:text-emerald-900"
-          >
-            Open student dashboard
-          </Link>
-        </p>
 
         <AuthFormFooter variant="login" />
       </AuthCard>

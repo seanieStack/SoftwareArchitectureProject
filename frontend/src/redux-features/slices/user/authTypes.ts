@@ -14,6 +14,7 @@ export const authResponseSchema = z.object({
   accessToken: z.string(),
   tokenType: z.string(),
   expiresIn: z.number(),
+  refreshToken: z.string().optional(),
   user: userProfileSchema,
 })
 

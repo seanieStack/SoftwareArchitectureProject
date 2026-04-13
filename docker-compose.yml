@@ -87,6 +87,7 @@ services:
       SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER}
       SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
       EUREKA_URI: http://eureka-server:8761/eureka/
+      FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-http://localhost:5173}
     depends_on:
       core-db:
         condition: service_healthy
@@ -148,6 +149,9 @@ services:
     build: ./frontend
     ports:
       - "5173:5173"
+    environment:
+      # Vite proxies /api → gateway (same-origin in the browser; avoids CORS).
+      VITE_PROXY_TARGET: http://api-gateway:8080
     depends_on:
       - api-gateway
 

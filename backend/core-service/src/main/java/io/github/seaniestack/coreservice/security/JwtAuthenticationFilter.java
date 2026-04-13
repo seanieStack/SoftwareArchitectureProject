@@ -75,7 +75,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return true;
         }
         String path = request.getRequestURI();
-        return path.startsWith("/api/auth") || path.startsWith("/api/core-service");
+        return path.startsWith("/api/auth")
+                || path.startsWith("/api/core-service")
+                || path.startsWith("/actuator/health");
     }
 
     private static void writeUnauthorized(HttpServletResponse response, String message) throws IOException {

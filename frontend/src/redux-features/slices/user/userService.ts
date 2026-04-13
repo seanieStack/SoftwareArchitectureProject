@@ -4,12 +4,8 @@ import type { LoginFormValues } from '../../../validation-schemas/loginSchema'
 import type { SignupFormValues } from '../../../validation-schemas/signupSchema'
 import { authResponseSchema, type AuthResponse } from './authTypes'
 
-function requireBaseUrl(): string {
-  const base = getBackendBaseUrl()
-  if (!base) {
-    throw new Error('VITE_BACKEND_URL is not set. Add it to your .env file.')
-  }
-  return base
+function apiBase(): string {
+  return getBackendBaseUrl()
 }
 
 async function parseErrorResponse(res: Response): Promise<string> {
@@ -34,7 +30,7 @@ function parseAuthBody(data: unknown): AuthResponse {
 export async function loginRequest(
   payload: Pick<LoginFormValues, 'email' | 'password'>,
 ): Promise<AuthResponse> {
-  const base = requireBaseUrl()
+  const base = apiBase()
   const res = await fetch(`${base}${API_PATHS.LOGIN}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -55,7 +51,7 @@ export type RegisterRequestBody = Pick<
 export async function registerRequest(
   payload: RegisterRequestBody,
 ): Promise<AuthResponse> {
-  const base = requireBaseUrl()
+  const base = apiBase()
   const res = await fetch(`${base}${API_PATHS.REGISTER}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -66,4 +62,55 @@ export async function registerRequest(
   }
   const data: unknown = await res.json()
   return parseAuthBody(data)
+}
+
+export async function refreshRequest(refreshToken: string): Promise<AuthResponse> {
+  const base = apiBase()
+  const res = await fetch(`${base}${API_PATHS.REFRESH}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ refreshToken }),
+  })
+  if (!res.ok) {
+    throw new Error(await parseErrorResponse(res))
+  }
+  const data: unknown = await res.json()
+  return parseAuthBody(data)
+}
+
+async function parseMessageResponse(res: Response): Promise<string> {
+  const text = await res.text()
+  if (!text) return ''
+  try {
+    const body = JSON.parse(text) as { message?: string }
+    return body.message ?? text
+  } catch {
+    return text
+  }
+}
+
+export async function forgotPasswordRequest(email: string): Promise<string> {
+  const base = apiBase()
+  const res = await fetch(`${base}${API_PATHS.FORGOT_PASSWORD}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  })
+  if (!res.ok) {
+    throw new Error(await parseErrorResponse(res))
+  }
+  return parseMessageResponse(res)
+}
+
+export async function resetPasswordRequest(token: string, newPassword: string): Promise<string> {
+  const base = apiBase()
+  const res = await fetch(`${base}${API_PATHS.RESET_PASSWORD}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token, newPassword }),
+  })
+  if (!res.ok) {
+    throw new Error(await parseErrorResponse(res))
+  }
+  return parseMessageResponse(res)
 }
