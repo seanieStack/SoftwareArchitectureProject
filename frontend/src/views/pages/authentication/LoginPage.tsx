@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useAppDispatch, useAppSelector } from '../../../redux-features/store/hooks'
 import {
   clearLoginError,
@@ -111,16 +111,6 @@ export function LoginPage() {
 
           <PrimaryButton loading={loginStatus === 'loading'}>Sign In</PrimaryButton>
         </form>
-
-        <p className="mt-6 text-center text-sm text-gray-600">
-          Preview the dashboard without signing in:{' '}
-          <Link
-            to={APP_ROUTES.STUDENT_DASHBOARD}
-            className="font-semibold text-emerald-800 hover:text-emerald-900"
-          >
-            Open student dashboard
-          </Link>
-        </p>
 
         <AuthFormFooter variant="login" />
       </AuthCard>
