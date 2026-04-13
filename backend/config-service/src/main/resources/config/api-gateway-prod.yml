@@ -1,0 +1,11 @@
+spring:
+  cloud:
+    gateway:
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowed-origins: "https://<deployedUrl>"
+
+logging:
+  level:
+    root: WARN

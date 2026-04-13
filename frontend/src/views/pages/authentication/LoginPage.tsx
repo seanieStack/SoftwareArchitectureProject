@@ -1,6 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAppDispatch, useAppSelector } from '../../../redux-features/store/hooks'
 import {
   clearLoginError,
@@ -14,9 +15,11 @@ import { AuthFormFooter } from '../../components/utils/AuthFormFooter'
 import { AuthHeader } from '../../components/utils/AuthHeader'
 import { LockIcon, MailIcon } from '../../components/utils/authIcons'
 import { IconInput } from '../../components/utils/IconInput'
+import { APP_ROUTES } from '../../../constants/routes'
 
 export function LoginPage() {
   const dispatch = useAppDispatch()
+  const navigate = useNavigate()
   const loginStatus = useAppSelector((s) => s.user.loginStatus)
   const loginError = useAppSelector((s) => s.user.loginError)
   const [rememberMe, setRememberMe] = useState(false)
@@ -33,6 +36,12 @@ export function LoginPage() {
   useEffect(() => {
     dispatch(clearLoginError())
   }, [dispatch])
+
+  useEffect(() => {
+    if (loginStatus === 'succeeded') {
+      navigate(APP_ROUTES.STUDENT_DASHBOARD, { replace: true })
+    }
+  }, [loginStatus, navigate])
 
   const onSubmit = (values: LoginFormValues) => {
     void dispatch(loginUser({ ...values, rememberMe }))
@@ -102,6 +111,16 @@ export function LoginPage() {
 
           <PrimaryButton loading={loginStatus === 'loading'}>Sign In</PrimaryButton>
         </form>
+
+        <p className="mt-6 text-center text-sm text-gray-600">
+          Preview the dashboard without signing in:{' '}
+          <Link
+            to={APP_ROUTES.STUDENT_DASHBOARD}
+            className="font-semibold text-emerald-800 hover:text-emerald-900"
+          >
+            Open student dashboard
+          </Link>
+        </p>
 
         <AuthFormFooter variant="login" />
       </AuthCard>

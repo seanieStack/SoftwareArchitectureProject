@@ -7,7 +7,7 @@ export function RootRedirect() {
   const accessToken = useAppSelector((s) => s.user.accessToken)
   return (
     <Navigate
-      to={accessToken ? APP_ROUTES.DASHBOARD : APP_ROUTES.LOGIN}
+      to={accessToken ? APP_ROUTES.STUDENT_DASHBOARD : APP_ROUTES.LOGIN}
       replace
     />
   )
@@ -16,7 +16,7 @@ export function RootRedirect() {
 export function GuestRoute({ children }: { children: ReactNode }) {
   const accessToken = useAppSelector((s) => s.user.accessToken)
   if (accessToken) {
-    return <Navigate to={APP_ROUTES.DASHBOARD} replace />
+    return <Navigate to={APP_ROUTES.STUDENT_DASHBOARD} replace />
   }
   return children
 }

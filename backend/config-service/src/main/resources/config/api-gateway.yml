@@ -1,0 +1,34 @@
+jwt:
+  secret: ${JWT_SECRET:dev-secret-change-in-production}
+  expiration-ms: 86400000
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      coreServiceBreaker:
+        sliding-window-size: 10
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 10s
+        permitted-number-of-calls-in-half-open-state: 3
+      supportServiceBreaker:
+        sliding-window-size: 10
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 10s
+        permitted-number-of-calls-in-half-open-state: 3
+  timelimiter:
+    instances:
+      coreServiceBreaker:
+        timeout-duration: 3s
+      supportServiceBreaker:
+        timeout-duration: 3s
+
+spring:
+  cloud:
+    gateway:
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowed-origins: "http://localhost:3000"
+            allowed-methods: ["GET","POST","PUT","DELETE","OPTIONS"]
+            allowed-headers: "*"
+            allow-credentials: true

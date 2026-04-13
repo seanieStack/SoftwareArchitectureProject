@@ -1,0 +1,32 @@
+server:
+  port: 8081
+
+spring:
+  autoconfigure:
+    exclude: org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
+  application:
+    name: core-service
+  datasource:
+    url: jdbc:postgresql://localhost:5432/${CORE_DB_NAME}
+    username: ${CORE_DB_USER}
+    password: ${CORE_DB_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER}
+    password: ${RABBITMQ_PASSWORD}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka/}
+  instance:
+    prefer-ip-address: true
+
+jwt:
+  secret: ${JWT_SECRET:local-dev-only-change-me-please-use-a-long-random-secret-key-at-least-32-chars}
+  expiration-ms: ${JWT_EXPIRATION_MS:3600000}
