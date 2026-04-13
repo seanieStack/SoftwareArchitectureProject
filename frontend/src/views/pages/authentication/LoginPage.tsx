@@ -44,9 +44,7 @@ export function LoginPage() {
   }, [loginStatus, navigate])
 
   const onSubmit = (values: LoginFormValues) => {
-    void dispatch(loginUser(values))
-    if (rememberMe) {
-    }
+    void dispatch(loginUser({ ...values, rememberMe }))
   }
 
   return (

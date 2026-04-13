@@ -3,6 +3,7 @@ export const APP_ROUTES = {
   HOME: '/',
   LOGIN: '/login',
   REGISTER: '/register',
+  DASHBOARD: '/dashboard',
   STUDENT_DASHBOARD: '/dashboard/student',
   STUDENT_PROFILE: '/dashboard/student/profile',
   BROWSE_BOOKS: '/browse',

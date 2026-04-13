@@ -2,6 +2,8 @@ server:
   port: 8081
 
 spring:
+  autoconfigure:
+    exclude: org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
   application:
     name: core-service
   datasource:
@@ -24,3 +26,7 @@ eureka:
       defaultZone: ${EUREKA_URI:http://localhost:8761/eureka/}
   instance:
     prefer-ip-address: true
+
+jwt:
+  secret: ${JWT_SECRET:local-dev-only-change-me-please-use-a-long-random-secret-key-at-least-32-chars}
+  expiration-ms: ${JWT_EXPIRATION_MS:3600000}

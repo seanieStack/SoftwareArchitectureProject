@@ -69,6 +69,16 @@ spring:
                     name: support-service-cb
                     fallbackUri: forward:/api/fallback/support
 
+            - id: core-service-auth
+              uri: lb://core-service
+              predicates:
+                - Path=/api/auth/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: core-service-cb
+                    fallbackUri: forward:/api/fallback/core
+
 eureka:
   client:
     service-url:

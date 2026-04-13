@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAppDispatch, useAppSelector } from '../../../redux-features/store/hooks'
-import { clearSession } from '../../../redux-features/slices/user/userSlice'
+import { logout } from '../../../redux-features/slices/user/userSlice'
 import { APP_ROUTES } from '../../../constants/routes'
 import { UL_LOGO_SRC, WEBSITE_LOGO_SRC } from '../../../constants/assets'
 import { DashboardUserMenu } from '../../components/dashboard/DashboardUserMenu'
@@ -61,7 +61,7 @@ export function StudentDashboardPage() {
   const displayName = useMemo(() => displayNameFromProfile(profile), [profile])
 
   const onLogout = () => {
-    dispatch(clearSession())
+    dispatch(logout())
     navigate(APP_ROUTES.LOGIN, { replace: true })
   }
 
