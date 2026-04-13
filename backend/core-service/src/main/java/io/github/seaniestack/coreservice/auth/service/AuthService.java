@@ -1,9 +1,11 @@
 package io.github.seaniestack.coreservice.auth.service;
 
+import io.github.seaniestack.coreservice.auth.domain.RefreshToken;
 import io.github.seaniestack.coreservice.auth.domain.User;
 import io.github.seaniestack.coreservice.auth.domain.UserRole;
 import io.github.seaniestack.coreservice.auth.dto.AuthResponse;
 import io.github.seaniestack.coreservice.auth.dto.LoginRequest;
+import io.github.seaniestack.coreservice.auth.dto.RefreshRequest;
 import io.github.seaniestack.coreservice.auth.dto.RegisterRequest;
 import io.github.seaniestack.coreservice.auth.dto.UserResponse;
 import io.github.seaniestack.coreservice.auth.exception.EmailAlreadyRegisteredException;
@@ -25,6 +27,7 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final RefreshTokenService refreshTokenService;
 
     @Value("${jwt.expiration-ms}")
     private long jwtExpirationMs;
@@ -57,10 +60,21 @@ public class AuthService {
         return buildAuthResponse(user);
     }
 
+    @Transactional
+    public AuthResponse refresh(RefreshRequest request) {
+        RefreshToken rotated = refreshTokenService.validateAndRotate(request.refreshToken());
+        return buildAuthResponse(rotated.getUser(), rotated);
+    }
+
     private AuthResponse buildAuthResponse(User user) {
-        String token = jwtService.generateToken(user);
+        RefreshToken refreshToken = refreshTokenService.create(user);
+        return buildAuthResponse(user, refreshToken);
+    }
+
+    private AuthResponse buildAuthResponse(User user, RefreshToken refreshToken) {
+        String accessToken = jwtService.generateToken(user);
         long expiresInSeconds = jwtExpirationMs / 1000;
-        return new AuthResponse(token, "Bearer", expiresInSeconds, UserResponse.from(user));
+        return new AuthResponse(accessToken, "Bearer", expiresInSeconds, refreshToken.getToken(), UserResponse.from(user));
     }
 
     private static String normalizeEmail(String email) {
