@@ -6,6 +6,10 @@ import { DashboardPage } from '../views/pages/dashboard/DashboardPage'
 import { StudentDashboardPage } from '../views/pages/dashboard/StudentDashboardPage'
 import { StudentProfilePage } from '../views/pages/dashboard/StudentProfilePage'
 import { BrowseBooksPage } from '../views/pages/dashboard/BrowseBooksPage'
+import { AdminDashboard } from '../views/pages/AdminDashboard'
+import { AdminAnalyticsPage } from '../views/pages/admin/AdminAnalyticsPage'
+import { AdminUserManagementPage } from '../views/pages/admin/AdminUserManagementPage'
+import { BookManagementPage } from '../views/pages/admin/BookManagementPage'
 import { GuestRoute, RequireAuth, RootRedirect } from './AuthRoutes'
 
 export const router = createBrowserRouter([
@@ -55,6 +59,38 @@ export const router = createBrowserRouter([
     element: (
       <RequireAuth>
         <BrowseBooksPage />
+      </RequireAuth>
+    ),
+  },
+  {
+    path: APP_ROUTES.ADMIN_DASHBOARD,
+    element: (
+      <RequireAuth>
+        <AdminDashboard />
+      </RequireAuth>
+    ),
+  },
+  {
+    path: APP_ROUTES.ADMIN_BOOKS,
+    element: (
+      <RequireAuth>
+        <BookManagementPage />
+      </RequireAuth>
+    ),
+  },
+  {
+    path: APP_ROUTES.ADMIN_USERS,
+    element: (
+      <RequireAuth>
+        <AdminUserManagementPage />
+      </RequireAuth>
+    ),
+  },
+  {
+    path: APP_ROUTES.ADMIN_ANALYTICS,
+    element: (
+      <RequireAuth>
+        <AdminAnalyticsPage />
       </RequireAuth>
     ),
   },
