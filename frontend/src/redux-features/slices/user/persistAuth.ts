@@ -4,11 +4,13 @@ import { userProfileSchema, type AuthResponse, type UserProfile } from './authTy
 function clearSessionStorageAuth(): void {
   sessionStorage.removeItem(AUTH_STORAGE_KEYS.ACCESS_TOKEN)
   sessionStorage.removeItem(AUTH_STORAGE_KEYS.USER_PROFILE)
+  sessionStorage.removeItem(AUTH_STORAGE_KEYS.REFRESH_TOKEN)
 }
 
 function clearLocalStorageAuth(): void {
   localStorage.removeItem(AUTH_STORAGE_KEYS.ACCESS_TOKEN)
   localStorage.removeItem(AUTH_STORAGE_KEYS.USER_PROFILE)
+  localStorage.removeItem(AUTH_STORAGE_KEYS.REFRESH_TOKEN)
 }
 
 /** Remove token from the storage we are not using for this session. */
@@ -25,6 +27,27 @@ export function persistAuthSession(response: AuthResponse, rememberMe: boolean):
   const storage = rememberMe ? localStorage : sessionStorage
   storage.setItem(AUTH_STORAGE_KEYS.ACCESS_TOKEN, response.accessToken)
   storage.setItem(AUTH_STORAGE_KEYS.USER_PROFILE, JSON.stringify(response.user))
+  if (response.refreshToken) {
+    storage.setItem(AUTH_STORAGE_KEYS.REFRESH_TOKEN, response.refreshToken)
+  }
+}
+
+export function persistAccessToken(accessToken: string, refreshToken: string): void {
+  // Update tokens in whichever storage is active without disturbing the profile or rememberMe choice
+  if (sessionStorage.getItem(AUTH_STORAGE_KEYS.ACCESS_TOKEN) !== null) {
+    sessionStorage.setItem(AUTH_STORAGE_KEYS.ACCESS_TOKEN, accessToken)
+    sessionStorage.setItem(AUTH_STORAGE_KEYS.REFRESH_TOKEN, refreshToken)
+  } else {
+    localStorage.setItem(AUTH_STORAGE_KEYS.ACCESS_TOKEN, accessToken)
+    localStorage.setItem(AUTH_STORAGE_KEYS.REFRESH_TOKEN, refreshToken)
+  }
+}
+
+export function loadPersistedRefreshToken(): string | null {
+  return (
+    sessionStorage.getItem(AUTH_STORAGE_KEYS.REFRESH_TOKEN) ??
+    localStorage.getItem(AUTH_STORAGE_KEYS.REFRESH_TOKEN)
+  )
 }
 
 export function clearPersistedAuth(): void {
@@ -32,7 +55,7 @@ export function clearPersistedAuth(): void {
   clearLocalStorageAuth()
 }
 
-export function loadPersistedAuth(): { accessToken: string | null; profile: UserProfile | null } {
+export function loadPersistedAuth(): { accessToken: string | null; profile: UserProfile | null; refreshToken: string | null } {
   const sessionToken = sessionStorage.getItem(AUTH_STORAGE_KEYS.ACCESS_TOKEN)
   const localToken = localStorage.getItem(AUTH_STORAGE_KEYS.ACCESS_TOKEN)
 
@@ -41,9 +64,10 @@ export function loadPersistedAuth(): { accessToken: string | null; profile: User
     const profile = parseProfile(raw)
     if (!profile) {
       clearSessionStorageAuth()
-      return { accessToken: null, profile: null }
+      return { accessToken: null, profile: null, refreshToken: null }
     }
-    return { accessToken: sessionToken, profile }
+    const refreshToken = sessionStorage.getItem(AUTH_STORAGE_KEYS.REFRESH_TOKEN)
+    return { accessToken: sessionToken, profile, refreshToken }
   }
 
   if (localToken) {
@@ -51,12 +75,13 @@ export function loadPersistedAuth(): { accessToken: string | null; profile: User
     const profile = parseProfile(raw)
     if (!profile) {
       clearLocalStorageAuth()
-      return { accessToken: null, profile: null }
+      return { accessToken: null, profile: null, refreshToken: null }
     }
-    return { accessToken: localToken, profile }
+    const refreshToken = localStorage.getItem(AUTH_STORAGE_KEYS.REFRESH_TOKEN)
+    return { accessToken: localToken, profile, refreshToken }
   }
 
-  return { accessToken: null, profile: null }
+  return { accessToken: null, profile: null, refreshToken: null }
 }
 
 function parseProfile(raw: string | null): UserProfile | null {

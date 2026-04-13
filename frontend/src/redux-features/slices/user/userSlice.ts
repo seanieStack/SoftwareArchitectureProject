@@ -2,13 +2,24 @@ import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
 import type { LoginFormValues } from '../../../validation-schemas/loginSchema'
 import {
   loginRequest,
+  refreshRequest,
   registerRequest,
   type RegisterRequestBody,
 } from './userService'
 import type { AuthResponse } from './authTypes'
-import { clearPersistedAuth, loadPersistedAuth, persistAuthSession } from './persistAuth'
+import { clearPersistedAuth, loadPersistedAuth, persistAccessToken, persistAuthSession } from './persistAuth'
 
 export type AuthAsyncStatus = 'idle' | 'loading' | 'succeeded' | 'failed'
+
+type UserState = {
+  accessToken: string | null
+  refreshToken: string | null
+  profile: AuthResponse['user'] | null
+  loginStatus: AuthAsyncStatus
+  loginError: string | null
+  registerStatus: AuthAsyncStatus
+  registerError: string | null
+}
 
 const persisted = loadPersistedAuth()
 
@@ -45,17 +56,24 @@ export const registerUser = createAsyncThunk<
   }
 })
 
-type UserState = {
-  accessToken: string | null
-  profile: AuthResponse['user'] | null
-  loginStatus: AuthAsyncStatus
-  loginError: string | null
-  registerStatus: AuthAsyncStatus
-  registerError: string | null
-}
+export const refreshAccessToken = createAsyncThunk<
+  AuthResponse,
+  void,
+  { state: { user: UserState }; rejectValue: string }
+>('user/refresh', async (_, { getState, rejectWithValue }) => {
+  const token = getState().user.refreshToken
+  if (!token) return rejectWithValue('No refresh token')
+  try {
+    return await refreshRequest(token)
+  } catch (e) {
+    const message = e instanceof Error ? e.message : 'Token refresh failed'
+    return rejectWithValue(message)
+  }
+})
 
 const initialState: UserState = {
   accessToken: persisted.accessToken,
+  refreshToken: persisted.refreshToken,
   profile: persisted.profile,
   loginStatus: 'idle',
   loginError: null,
@@ -84,6 +102,7 @@ const userSlice = createSlice({
     logout(state) {
       clearPersistedAuth()
       state.accessToken = null
+      state.refreshToken = null
       state.profile = null
       state.loginError = null
       state.registerError = null
@@ -100,6 +119,7 @@ const userSlice = createSlice({
       .addCase(loginUser.fulfilled, (state, action) => {
         state.loginStatus = 'succeeded'
         state.accessToken = action.payload.accessToken
+        state.refreshToken = action.payload.refreshToken ?? null
         state.profile = action.payload.user
         persistAuthSession(action.payload, action.meta.arg.rememberMe)
       })
@@ -114,6 +134,7 @@ const userSlice = createSlice({
       .addCase(registerUser.fulfilled, (state, action) => {
         state.registerStatus = 'succeeded'
         state.accessToken = action.payload.accessToken
+        state.refreshToken = action.payload.refreshToken ?? null
         state.profile = action.payload.user
         persistAuthSession(action.payload, false)
       })
@@ -121,6 +142,20 @@ const userSlice = createSlice({
         state.registerStatus = 'failed'
         state.registerError =
           action.payload ?? action.error.message ?? 'Registration failed'
+      })
+      .addCase(refreshAccessToken.fulfilled, (state, action) => {
+        state.accessToken = action.payload.accessToken
+        state.refreshToken = action.payload.refreshToken ?? null
+        if (action.payload.refreshToken) {
+          persistAccessToken(action.payload.accessToken, action.payload.refreshToken)
+        }
+      })
+      .addCase(refreshAccessToken.rejected, (state) => {
+        // Refresh failed — the session is unrecoverable, force logout
+        clearPersistedAuth()
+        state.accessToken = null
+        state.refreshToken = null
+        state.profile = null
       })
   },
 })

@@ -3,6 +3,8 @@ export const APP_ROUTES = {
   HOME: '/',
   LOGIN: '/login',
   REGISTER: '/register',
+  FORGOT_PASSWORD: '/forgot-password',
+  RESET_PASSWORD: '/reset-password',
   DASHBOARD: '/dashboard',
   STUDENT_DASHBOARD: '/dashboard/student',
   STUDENT_PROFILE: '/dashboard/student/profile',

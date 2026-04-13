@@ -1,37 +1,45 @@
 import { getBackendBaseUrl } from '../constants/env'
-import { logout } from '../redux-features/slices/user/userSlice'
+import { logout, refreshAccessToken } from '../redux-features/slices/user/userSlice'
 import { store } from '../redux-features/store'
 
-/**
- * Authenticated fetch to the API gateway. Sends `Authorization: Bearer` when a token exists.
- * On 401, clears auth and sends the browser to the login page.
- */
-export async function authorizedFetch(path: string, init: RequestInit = {}): Promise<Response> {
-  const base = getBackendBaseUrl()
-  if (!base) {
-    throw new Error('VITE_BACKEND_URL is not set. Add it to your .env file.')
-  }
-
-  const token = store.getState().user.accessToken
+function buildHeaders(token: string | null, init: RequestInit): Headers {
   const headers = new Headers(init.headers)
-
   if (token) {
     headers.set('Authorization', `Bearer ${token}`)
   }
-
   if (init.body !== undefined && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json')
   }
+  return headers
+}
 
-  const res = await fetch(`${base.replace(/\/$/, '')}${path}`, {
-    ...init,
-    headers,
-  })
+/**
+ * Authenticated fetch to the API gateway. Sends `Authorization: Bearer` when a token exists.
+ * On 401, attempts a silent token refresh once. If the refresh succeeds the original request
+ * is retried with the new access token. If it fails the session is cleared and the user is
+ * sent to login.
+ */
+export async function authorizedFetch(path: string, init: RequestInit = {}): Promise<Response> {
+  const base = getBackendBaseUrl().replace(/\/$/, '')
+  const url = `${base}${path}`
+  const token = store.getState().user.accessToken
 
-  if (res.status === 401 && token) {
-    store.dispatch(logout())
-    window.location.assign('/login')
+  const res = await fetch(url, { ...init, headers: buildHeaders(token, init) })
+
+  if (res.status !== 401 || !store.getState().user.refreshToken) {
+    return res
   }
 
-  return res
+  // Attempt silent refresh
+  const result = await store.dispatch(refreshAccessToken())
+
+  if (refreshAccessToken.rejected.match(result)) {
+    store.dispatch(logout())
+    window.location.assign('/login')
+    return res
+  }
+
+  // Retry original request with the new access token
+  const newToken = store.getState().user.accessToken
+  return fetch(url, { ...init, headers: buildHeaders(newToken, init) })
 }
