@@ -80,6 +80,18 @@ cd backend/core-service
 cd backend/support-service
 ./mvnw spring-boot:run
 ```
+### Backend — config-service
+
+```bash
+cd backend/config-service
+./mvnw spring-boot:run
+```
+### Backend — eureka-server
+
+```bash
+cd backend/eureka-server
+./mvnw spring-boot:run
+```
 
 ### API Gateway _(once implemented)_
 
