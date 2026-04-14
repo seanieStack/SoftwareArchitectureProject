@@ -111,6 +111,39 @@ public class BookService {
         return getBookOrThrow(bookId).getAvailableCopies() > 0;
     }
 
+    @Transactional
+    public void decrementAvailableCopies(Long bookId) {
+        Book book = getBookOrThrow(bookId);
+        book.borrowCopy();
+        bookRepository.save(book);
+        log.info("Decremented available copies for book {} → {}", bookId, book.getAvailableCopies());
+    }
+
+    @Transactional
+    public void incrementAvailableCopies(Long bookId) {
+        Book book = getBookOrThrow(bookId);
+        book.returnCopy();
+        bookRepository.save(book);
+        log.info("Incremented available copies for book {} → {}", bookId, book.getAvailableCopies());
+    }
+
+    @Transactional
+    public BookDTO retireAvailableCopies(Long bookId) {
+        Book book = getBookOrThrow(bookId);
+        int borrowed = book.getTotalCopies() - book.getAvailableCopies();
+        if (borrowed == 0) {
+            bookRepository.delete(book);
+            bookEventPublisher.publishBookRemoved(new BookRemovedEvent(book.getId(), book.getIsbn(), book.getTitle()));
+            log.info("Deleted book {} (no copies borrowed)", bookId);
+            return null;
+        }
+        book.setTotalCopies(borrowed);
+        book.setAvailableCopies(0);
+        Book saved = bookRepository.save(book);
+        log.info("Retired available copies for book {} → total={}, available=0", bookId, borrowed);
+        return BookDTO.from(saved);
+    }
+
     private void ensureIsbnUnique(String isbn, Long existingBookId) {
         String normalized = isbn.trim();
         bookRepository.findByIsbn(normalized).ifPresent(existing -> {

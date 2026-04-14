@@ -81,6 +81,26 @@ spring:
                     name: core-service-cb
                     fallbackUri: forward:/api/fallback/core
 
+            - id: core-service-admin
+              uri: lb://core-service
+              predicates:
+                - Path=/api/admin/users/**,/api/admin/counts
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: core-service-cb
+                    fallbackUri: forward:/api/fallback/core
+
+            - id: support-service-admin
+              uri: lb://support-service
+              predicates:
+                - Path=/api/admin/analytics
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: support-service-cb
+                    fallbackUri: forward:/api/fallback/support
+
 jwt:
   secret: ${JWT_SECRET:local-dev-only-change-me-please-use-a-long-random-secret-key-at-least-32-chars}
 

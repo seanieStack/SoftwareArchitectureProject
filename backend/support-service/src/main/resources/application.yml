@@ -10,8 +10,8 @@ spring:
     import: optional:configserver:${CONFIG_SERVER_URI:http://localhost:8888}
   datasource:
     url: jdbc:postgresql://localhost:5433/support
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
+    username: ${SUPPORT_DB_USER}
+    password: ${SUPPORT_DB_PASSWORD}
   jpa:
     hibernate:
       ddl-auto: update
@@ -24,6 +24,9 @@ spring:
 
 core-service:
   url: ${CORE_SERVICE_URL:http://localhost:8081}
+
+internal:
+  secret: ${INTERNAL_SECRET:dev-internal-secret-change-me}
 
 eureka:
   client:
