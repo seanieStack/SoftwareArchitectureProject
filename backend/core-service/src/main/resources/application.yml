@@ -6,6 +6,8 @@ spring:
     exclude: org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
   application:
     name: core-service
+  config:
+    import: optional:configserver:${CONFIG_SERVER_URI:http://localhost:8888}
   datasource:
     url: jdbc:postgresql://localhost:5432/${CORE_DB_NAME}
     username: ${CORE_DB_USER}

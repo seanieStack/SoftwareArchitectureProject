@@ -63,8 +63,6 @@ services:
       - "8888:8888"
     environment:
       EUREKA_URI: http://eureka-server:8761/eureka/
-    volumes:
-      - ${HOME}/config-repo:/root/config-repo
     depends_on:
       eureka-server:
         condition: service_healthy
@@ -89,12 +87,15 @@ services:
       EUREKA_URI: http://eureka-server:8761/eureka/
       FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-http://localhost:5173}
       JWT_SECRET: ${JWT_SECRET}
+      CONFIG_SERVER_URI: http://config-service:8888
     depends_on:
       core-db:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
       eureka-server:
+        condition: service_healthy
+      config-service:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8081/actuator/health || exit 1"]
@@ -116,6 +117,7 @@ services:
       SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
       CORE_SERVICE_URL: http://core-service:8081
       EUREKA_URI: http://eureka-server:8761/eureka/
+      CONFIG_SERVER_URI: http://config-service:8888
     depends_on:
       support-db:
         condition: service_healthy
@@ -124,6 +126,8 @@ services:
       core-service:
         condition: service_healthy
       eureka-server:
+        condition: service_healthy
+      config-service:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8082/actuator/health || exit 1"]
@@ -139,12 +143,15 @@ services:
     environment:
       EUREKA_URI: http://eureka-server:8761/eureka/
       JWT_SECRET: ${JWT_SECRET}
+      CONFIG_SERVER_URI: http://config-service:8888
     depends_on:
       eureka-server:
         condition: service_healthy
       core-service:
         condition: service_healthy
       support-service:
+        condition: service_healthy
+      config-service:
         condition: service_healthy
 
   frontend:
