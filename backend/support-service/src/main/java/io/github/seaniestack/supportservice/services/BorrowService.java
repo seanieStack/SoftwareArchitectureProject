@@ -61,6 +61,7 @@ public class BorrowService {
                 .deadline(request.deadline())
                 .build();
         borrowRepository.save(borrow);
+        coreServiceClient.borrowBook(request.bookId());
         log.info("Created borrow {} for user {} book {}", borrow.getId(), request.userId(), request.bookId());
 
         eventPublisher.publishBorrowCreated(new BorrowCreatedEvent(
@@ -87,6 +88,7 @@ public class BorrowService {
         borrow.setStatus(BorrowStatus.RETURNED);
         borrow.setReturnedAt(LocalDateTime.now());
         borrowRepository.save(borrow);
+        coreServiceClient.returnBook(borrow.getBookId());
         log.info("Borrow {} returned", borrowId);
         return BorrowDTO.from(borrow);
     }

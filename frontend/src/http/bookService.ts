@@ -70,3 +70,11 @@ export async function deleteBook(bookId: number): Promise<void> {
   const res = await authorizedFetch(API_PATHS.BOOKS.BY_ID(bookId), { method: 'DELETE' })
   if (!res.ok) throw new Error(await parseErrorResponse(res))
 }
+
+/** Retire all available copies. If no copies are borrowed, the book is deleted entirely. */
+export async function retireBook(bookId: number): Promise<Book | null> {
+  const res = await authorizedFetch(API_PATHS.BOOKS.RETIRE(bookId), { method: 'PATCH' })
+  if (!res.ok) throw new Error(await parseErrorResponse(res))
+  if (res.status === 204) return null
+  return res.json() as Promise<Book>
+}
