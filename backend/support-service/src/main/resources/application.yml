@@ -24,6 +24,14 @@ spring:
 
 core-service:
   url: ${CORE_SERVICE_URL:http://localhost:8081}
+  connect-timeout: ${CORE_SERVICE_CONNECT_TIMEOUT:2s}
+  read-timeout: ${CORE_SERVICE_READ_TIMEOUT:2s}
+  retry-max-attempts: ${CORE_SERVICE_RETRY_MAX_ATTEMPTS:3}
+  retry-wait-duration: ${CORE_SERVICE_RETRY_WAIT_DURATION:200ms}
+  circuit-breaker-failure-rate-threshold: ${CORE_SERVICE_CB_FAILURE_RATE_THRESHOLD:50}
+  circuit-breaker-sliding-window-size: ${CORE_SERVICE_CB_SLIDING_WINDOW_SIZE:4}
+  circuit-breaker-minimum-number-of-calls: ${CORE_SERVICE_CB_MINIMUM_CALLS:2}
+  circuit-breaker-wait-duration-in-open-state: ${CORE_SERVICE_CB_WAIT_OPEN:5s}
 
 internal:
   secret: ${INTERNAL_SECRET:dev-internal-secret-change-me}
