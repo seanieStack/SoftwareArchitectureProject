@@ -60,6 +60,7 @@ public class GatewayHeaderAuthFilter extends OncePerRequestFilter {
         String path = request.getRequestURI();
         return path.startsWith("/api/auth")
                 || path.startsWith("/api/core-service")
+                || path.startsWith("/api/internal")
                 || path.startsWith("/actuator/health");
     }
 

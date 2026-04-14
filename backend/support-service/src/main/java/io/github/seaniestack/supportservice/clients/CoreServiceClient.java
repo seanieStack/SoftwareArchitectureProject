@@ -159,6 +159,34 @@ public class CoreServiceClient {
         }
     }
 
+    public void borrowBook(Long bookId) {
+        log.debug("Decrementing available copies for book {} in core-service", bookId);
+        try {
+            restClient.patch()
+                    .uri("/api/internal/books/{bookId}/borrow", bookId)
+                    .retrieve()
+                    .toBodilessEntity();
+            log.debug("Decremented copies for book {}", bookId);
+        } catch (Exception e) {
+            log.error("Failed to decrement copies for book {}: {}", bookId, e.getMessage());
+            throw new CoreServiceUnavailableException("Core service unavailable", e);
+        }
+    }
+
+    public void returnBook(Long bookId) {
+        log.debug("Incrementing available copies for book {} in core-service", bookId);
+        try {
+            restClient.patch()
+                    .uri("/api/internal/books/{bookId}/return", bookId)
+                    .retrieve()
+                    .toBodilessEntity();
+            log.debug("Incremented copies for book {}", bookId);
+        } catch (Exception e) {
+            log.error("Failed to increment copies for book {}: {}", bookId, e.getMessage());
+            throw new CoreServiceUnavailableException("Core service unavailable", e);
+        }
+    }
+
     public static class BookNotFoundException extends RuntimeException {
         public BookNotFoundException(Long bookId) {
             super("Book not found. Id: " + bookId);

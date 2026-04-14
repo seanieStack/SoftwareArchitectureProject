@@ -1,5 +1,8 @@
+import { useEffect, useState } from 'react'
 import { ADMIN_DASHBOARD_NAV } from '../../constants/adminNav'
 import { DashboardShell } from '../../layout/DashboardShell'
+import { getAdminCounts, getAdminAnalytics } from '../../http/adminService'
+import type { AdminCounts, AdminAnalytics } from '../../types/admin'
 
 function StatCard({
   label,
@@ -20,6 +23,19 @@ function StatCard({
 }
 
 export function AdminDashboard() {
+  const [counts, setCounts] = useState<AdminCounts | null>(null)
+  const [analytics, setAnalytics] = useState<AdminAnalytics | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    Promise.all([getAdminCounts(), getAdminAnalytics()])
+      .then(([c, a]) => {
+        setCounts(c)
+        setAnalytics(a)
+      })
+      .catch((err: unknown) => setError(err instanceof Error ? err.message : 'Failed to load stats'))
+  }, [])
+
   return (
     <DashboardShell
       roleLabel="Administrator"
@@ -36,22 +52,34 @@ export function AdminDashboard() {
         <div className="rounded-xl border border-gray-200/80 bg-white p-6 shadow-md shadow-gray-200/80 md:p-8">
           <h2 className="text-lg font-semibold text-gray-900">Good to see you</h2>
           <p className="mt-2 text-sm leading-relaxed text-gray-600">
-            From here you&apos;ll be able to help members, keep the catalog up to date, and track
-            what&apos;s on loan. The numbers below will show live totals once your team connects
-            the admin tools to the library system.
+            From here you can help members, keep the catalog up to date, and track
+            what&apos;s on loan.
           </p>
         </div>
 
-        <div>
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">
-            At a glance
-          </h2>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <StatCard label="Active loans" value="—" hint="Live count coming soon" />
-            <StatCard label="Titles in catalog" value="—" hint="Live count coming soon" />
-            <StatCard label="Registered users" value="—" hint="Live count coming soon" />
+        {error ? (
+          <p className="text-sm text-red-600">{error}</p>
+        ) : (
+          <div>
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">
+              At a glance
+            </h2>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <StatCard
+                label="Active loans"
+                value={analytics ? String(analytics.activeBorrows) : '...'}
+              />
+              <StatCard
+                label="Titles in catalog"
+                value={counts ? String(counts.totalBooks) : '...'}
+              />
+              <StatCard
+                label="Registered users"
+                value={counts ? String(counts.registeredUsers) : '...'}
+              />
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </DashboardShell>
   )

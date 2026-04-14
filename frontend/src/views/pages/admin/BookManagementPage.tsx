@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ADMIN_DASHBOARD_NAV } from '../../../constants/adminNav'
-import type { Book } from '../../../types/catalog'
+import type { Book, BookRequest } from '../../../types/catalog'
 import { DashboardShell } from '../../../layout/DashboardShell'
 import { BookManagementTable } from '../../components/tables/BookManagementTable'
+import { BookFormModal } from '../../components/modals/BookFormModal'
 import { SearchIcon } from '../../components/utils/adminIcons'
-import { getBooks, deleteBook } from '../../../http/bookService'
+import { getBooks, retireBook, createBook, updateBook } from '../../../http/bookService'
 
 function matchesSearch(book: Book, q: string) {
   if (!q.trim()) return true
@@ -16,6 +17,11 @@ function matchesSearch(book: Book, q: string) {
   )
 }
 
+type ModalState =
+  | { kind: 'closed' }
+  | { kind: 'add' }
+  | { kind: 'edit'; book: Book }
+
 export function BookManagementPage() {
   const [books, setBooks] = useState<Book[]>([])
   const [loading, setLoading] = useState(true)
@@ -23,6 +29,7 @@ export function BookManagementPage() {
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('')
   const [groupByCategory, setGroupByCategory] = useState(false)
+  const [modal, setModal] = useState<ModalState>({ kind: 'closed' })
 
   useEffect(() => {
     setLoading(true)
@@ -42,8 +49,8 @@ export function BookManagementPage() {
   const filteredBooks = useMemo(() => {
     return books.filter((book) => {
       if (!matchesSearch(book, search)) return false
-      if (categoryFilter && !book.categories.includes(categoryFilter)) return false
-      return true
+      return !(categoryFilter && !book.categories.includes(categoryFilter));
+
     })
   }, [books, search, categoryFilter])
 
@@ -59,14 +66,35 @@ export function BookManagementPage() {
     return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]))
   }, [filteredBooks])
 
-  async function handleDelete(book: Book) {
-    if (!window.confirm(`Delete "${book.title}"?`)) return
+  async function handleRetire(book: Book) {
+    const borrowed = book.totalCopies - book.availableCopies
+    const message = borrowed > 0
+      ? `"${book.title}" has ${borrowed} borrowed copy/copies. This will set available copies to 0 and keep only the borrowed ones. Continue?`
+      : `"${book.title}" has no borrowed copies. This will delete the book entirely. Continue?`
+    if (!window.confirm(message)) return
     try {
-      await deleteBook(book.id)
-      setBooks((prev) => prev.filter((b) => b.id !== book.id))
+      const updated = await retireBook(book.id)
+      if (updated) {
+        setBooks((prev) => prev.map((b) => (b.id === updated.id ? updated : b)))
+      } else {
+        setBooks((prev) => prev.filter((b) => b.id !== book.id))
+      }
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to delete book')
+      alert(err instanceof Error ? err.message : 'Failed to retire book')
     }
+  }
+
+  async function handleSaveNew(data: BookRequest) {
+    const created = await createBook(data)
+    setBooks((prev) => [...prev, created])
+    setModal({ kind: 'closed' })
+  }
+
+  async function handleSaveEdit(data: BookRequest) {
+    if (modal.kind !== 'edit') return
+    const updated = await updateBook(modal.book.id, data)
+    setBooks((prev) => prev.map((b) => (b.id === updated.id ? updated : b)))
+    setModal({ kind: 'closed' })
   }
 
   return (
@@ -139,6 +167,7 @@ export function BookManagementPage() {
                 </div>
                 <button
                   type="button"
+                  onClick={() => setModal({ kind: 'add' })}
                   className="rounded-lg bg-emerald-800 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-900"
                 >
                   + Add book
@@ -161,7 +190,8 @@ export function BookManagementPage() {
                 {!groupByCategory ? (
                   <BookManagementTable
                     books={filteredBooks}
-                    onDelete={handleDelete}
+                    onEdit={(book) => setModal({ kind: 'edit', book })}
+                    onDelete={handleRetire}
                     hasFilters={hasFilters}
                   />
                 ) : groupedBooks.length === 0 ? (
@@ -182,7 +212,8 @@ export function BookManagementPage() {
                         </h2>
                         <BookManagementTable
                           books={sectionBooks}
-                          onDelete={handleDelete}
+                          onEdit={(book) => setModal({ kind: 'edit', book })}
+                          onDelete={handleRetire}
                           hasFilters={hasFilters}
                         />
                       </section>
@@ -194,6 +225,20 @@ export function BookManagementPage() {
           </div>
         </div>
       </div>
+
+      {modal.kind === 'add' && (
+        <BookFormModal
+          onSave={handleSaveNew}
+          onClose={() => setModal({ kind: 'closed' })}
+        />
+      )}
+      {modal.kind === 'edit' && (
+        <BookFormModal
+          book={modal.book}
+          onSave={handleSaveEdit}
+          onClose={() => setModal({ kind: 'closed' })}
+        />
+      )}
     </DashboardShell>
   )
 }

@@ -41,6 +41,9 @@ jwt:
 refresh-token:
   expiration-ms: ${REFRESH_TOKEN_EXPIRATION_MS:604800000}
 
+internal:
+  secret: ${INTERNAL_SECRET:dev-internal-secret-change-me}
+
 app:
   password-reset:
     frontend-base-url: ${FRONTEND_BASE_URL:http://localhost:5173}
