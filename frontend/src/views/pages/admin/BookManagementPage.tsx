@@ -1,52 +1,73 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { ADMIN_DASHBOARD_NAV } from '../../../constants/adminNav'
-import type { AdminBookRow } from '../../../types/catalog'
+import type { Book } from '../../../types/catalog'
 import { DashboardShell } from '../../../layout/DashboardShell'
 import { BookManagementTable } from '../../components/tables/BookManagementTable'
 import { SearchIcon } from '../../components/utils/adminIcons'
+import { getBooks, deleteBook } from '../../../http/bookService'
 
-function matchesSearch(book: AdminBookRow, q: string) {
+function matchesSearch(book: Book, q: string) {
   if (!q.trim()) return true
   const s = q.trim().toLowerCase()
   return (
     book.title.toLowerCase().includes(s) ||
-    book.author.toLowerCase().includes(s) ||
+    book.authors.some((a) => a.toLowerCase().includes(s)) ||
     book.isbn.replace(/\s/g, '').includes(s.replace(/\s/g, ''))
   )
 }
 
 export function BookManagementPage() {
+  const [books, setBooks] = useState<Book[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('')
   const [groupByCategory, setGroupByCategory] = useState(false)
 
-  /** Replace with Redux/API-backed list when the admin catalogue endpoint is wired. */
-  const books: AdminBookRow[] = []
+  useEffect(() => {
+    setLoading(true)
+    getBooks()
+      .then(setBooks)
+      .catch((err: unknown) => setError(err instanceof Error ? err.message : 'Failed to load books'))
+      .finally(() => setLoading(false))
+  }, [])
 
   const hasFilters = Boolean(search.trim() || categoryFilter)
 
   const categories = useMemo(() => {
-    const set = new Set(books.map((b) => b.category))
+    const set = new Set(books.flatMap((b) => b.categories))
     return Array.from(set).sort((a, b) => a.localeCompare(b))
   }, [books])
 
   const filteredBooks = useMemo(() => {
     return books.filter((book) => {
       if (!matchesSearch(book, search)) return false
-      if (categoryFilter && book.category !== categoryFilter) return false
+      if (categoryFilter && !book.categories.includes(categoryFilter)) return false
       return true
     })
   }, [books, search, categoryFilter])
 
   const groupedBooks = useMemo(() => {
-    const map = new Map<string, AdminBookRow[]>()
+    const map = new Map<string, Book[]>()
     for (const book of filteredBooks) {
-      const list = map.get(book.category) ?? []
-      list.push(book)
-      map.set(book.category, list)
+      for (const cat of book.categories) {
+        const list = map.get(cat) ?? []
+        list.push(book)
+        map.set(cat, list)
+      }
     }
     return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]))
   }, [filteredBooks])
+
+  async function handleDelete(book: Book) {
+    if (!window.confirm(`Delete "${book.title}"?`)) return
+    try {
+      await deleteBook(book.id)
+      setBooks((prev) => prev.filter((b) => b.id !== book.id))
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to delete book')
+    }
+  }
 
   return (
     <DashboardShell roleLabel="Administrator" navItems={[...ADMIN_DASHBOARD_NAV]}>
@@ -54,8 +75,7 @@ export function BookManagementPage() {
         <div>
           <h1 className="text-2xl font-semibold text-gray-900">Book management</h1>
           <p className="mt-1 text-sm text-gray-600">
-            Search, filter by category, or view titles grouped by category once the catalogue is
-            loaded from the API.
+            Search, filter by category, or view titles grouped by category.
           </p>
         </div>
 
@@ -126,34 +146,50 @@ export function BookManagementPage() {
               </div>
             </div>
 
-            <p className="text-sm text-gray-500">
-              Showing{' '}
-              <span className="font-medium text-gray-700">{filteredBooks.length}</span> of{' '}
-              {books.length} titles
-            </p>
-
-            {!groupByCategory ? (
-              <BookManagementTable books={filteredBooks} hasFilters={hasFilters} />
-            ) : groupedBooks.length === 0 ? (
-              <BookManagementTable books={[]} hasFilters={hasFilters} />
+            {loading ? (
+              <p className="py-8 text-center text-sm text-gray-500">Loading books…</p>
+            ) : error ? (
+              <p className="py-8 text-center text-sm text-red-600">{error}</p>
             ) : (
-              <div className="space-y-8">
-                {groupedBooks.map(([category, sectionBooks]) => (
-                  <section key={category} aria-labelledby={`cat-${category}`}>
-                    <h2
-                      id={`cat-${category}`}
-                      className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-900"
-                    >
-                      <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-900">
-                        {category}
-                      </span>
-                      <span className="text-gray-400">·</span>
-                      <span className="font-normal text-gray-500">{sectionBooks.length} title(s)</span>
-                    </h2>
-                    <BookManagementTable books={sectionBooks} hasFilters={hasFilters} />
-                  </section>
-                ))}
-              </div>
+              <>
+                <p className="text-sm text-gray-500">
+                  Showing{' '}
+                  <span className="font-medium text-gray-700">{filteredBooks.length}</span> of{' '}
+                  {books.length} titles
+                </p>
+
+                {!groupByCategory ? (
+                  <BookManagementTable
+                    books={filteredBooks}
+                    onDelete={handleDelete}
+                    hasFilters={hasFilters}
+                  />
+                ) : groupedBooks.length === 0 ? (
+                  <BookManagementTable books={[]} hasFilters={hasFilters} />
+                ) : (
+                  <div className="space-y-8">
+                    {groupedBooks.map(([category, sectionBooks]) => (
+                      <section key={category} aria-labelledby={`cat-${category}`}>
+                        <h2
+                          id={`cat-${category}`}
+                          className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-900"
+                        >
+                          <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-900">
+                            {category}
+                          </span>
+                          <span className="text-gray-400">·</span>
+                          <span className="font-normal text-gray-500">{sectionBooks.length} title(s)</span>
+                        </h2>
+                        <BookManagementTable
+                          books={sectionBooks}
+                          onDelete={handleDelete}
+                          hasFilters={hasFilters}
+                        />
+                      </section>
+                    ))}
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>
