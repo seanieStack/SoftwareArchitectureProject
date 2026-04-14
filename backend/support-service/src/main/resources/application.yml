@@ -6,8 +6,8 @@ spring:
     name: support-service
   datasource:
     url: jdbc:postgresql://localhost:5433/support
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
+    username: ${SUPPORT_DB_USER}
+    password: ${SUPPORT_DB_PASSWORD}
   jpa:
     hibernate:
       ddl-auto: update
