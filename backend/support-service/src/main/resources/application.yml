@@ -2,6 +2,8 @@ server:
   port: 8082
 
 spring:
+  autoconfigure:
+    exclude: org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
   application:
     name: support-service
   datasource:

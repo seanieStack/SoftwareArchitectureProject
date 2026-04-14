@@ -89,7 +89,54 @@ More details available in [wiki](https://github.com/seanieStack/SoftwareArchitec
 
 ## API Documentation
 
-- not implemented
+All requests go through the API Gateway at `http://localhost:8080`.
+
+### Auth (`core-service`)
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | `/api/auth/register` | Public | Register a new user |
+| POST | `/api/auth/login` | Public | Log in, returns access + refresh tokens |
+| POST | `/api/auth/refresh` | Public | Exchange a refresh token for a new access token |
+| POST | `/api/auth/forgot-password` | Public | Request a password-reset email |
+| POST | `/api/auth/reset-password` | Public | Reset password using emailed token |
+
+### Books (`core-service`)
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/api/books` | Required | List all books |
+| GET | `/api/books/search?keyword=&author=&category=` | Required | Search/filter books |
+| GET | `/api/books/{bookId}` | Required | Get a single book |
+| GET | `/api/books/{bookId}/availability` | Required | Check book availability |
+| POST | `/api/books` | ADMIN | Create a book |
+| PUT | `/api/books/{bookId}` | ADMIN | Update a book |
+| DELETE | `/api/books/{bookId}` | ADMIN | Delete a book |
+
+### Borrows (`support-service`)
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/api/borrows/user/{userId}` | Required | List all borrows for a user |
+| GET | `/api/borrows/{borrowId}` | Required | Get a single borrow record |
+| POST | `/api/borrows` | Required | Borrow a book |
+| PATCH | `/api/borrows/{borrowId}/return` | Required | Return a borrowed book |
+
+### Fines (`support-service`)
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/api/fines/user/{userId}?acknowledged=` | Required | List fines for a user (optional unacknowledged filter) |
+| GET | `/api/fines/{fineId}` | Required | Get a single fine |
+| PATCH | `/api/fines/{fineId}/acknowledge` | Required | Acknowledge a fine |
+| PATCH | `/api/fines/{fineId}/pay` | Required | Pay a fine |
+
+### Notifications (`support-service`)
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/api/notifications/user/{userId}?unreadOnly=true` | Required | List notifications for a user |
+| PATCH | `/api/notifications/{notificationId}/read` | Required | Mark a notification as read |
 
 ## Authentication & Authorization
 
