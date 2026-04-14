@@ -8,13 +8,14 @@ spring:
     config:
       server:
         git:
-          uri: file://${user.home}/config-repo
+          uri: https://github.com/seanieStack/SoftwareArchitectureProject
           default-label: main
           clone-on-start: true
+          search-paths: backend/config-service/src/main/resources/config
 
 eureka:
   client:
     service-url:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka/}
   instance:
     prefer-ip-address: true
