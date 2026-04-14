@@ -1,13 +1,15 @@
-import type { AdminBookRow } from '../../../types/catalog'
+import type { Book } from '../../../types/catalog'
 import { PencilIcon, TrashIcon } from '../utils/adminIcons'
 
 type BookManagementTableProps = {
-  books: AdminBookRow[]
-  /** When true, empty results are treated as “no match” rather than an empty catalog. */
+  books: Book[]
+  onEdit?: (book: Book) => void
+  onDelete?: (book: Book) => void
+  /** When true, empty results are treated as "no match" rather than an empty catalog. */
   hasFilters?: boolean
 }
 
-export function BookManagementTable({ books, hasFilters }: BookManagementTableProps) {
+export function BookManagementTable({ books, onEdit, onDelete, hasFilters }: BookManagementTableProps) {
   if (books.length === 0) {
     return (
       <p className="rounded-lg border border-dashed border-gray-200 bg-gray-50/80 px-4 py-8 text-center text-sm text-gray-500">
@@ -44,32 +46,40 @@ export function BookManagementTable({ books, hasFilters }: BookManagementTablePr
                   </div>
                   <div className="min-w-0">
                     <p className="font-semibold text-gray-900">{book.title}</p>
-                    <p className="text-sm text-gray-500">{book.author}</p>
+                    <p className="text-sm text-gray-500">{book.authors.join(', ')}</p>
                   </div>
                 </div>
               </td>
               <td className="py-4 pr-4">
-                <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-900">
-                  {book.category}
-                </span>
+                <div className="flex flex-wrap gap-1">
+                  {book.categories.map((cat) => (
+                    <span
+                      key={cat}
+                      className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-900"
+                    >
+                      {cat}
+                    </span>
+                  ))}
+                </div>
               </td>
               <td className="py-4 pr-4 font-mono text-gray-700">{book.isbn}</td>
               <td className="py-4 pr-4">
                 <span
                   className={
-                    book.available > 0
+                    book.availableCopies > 0
                       ? 'font-semibold text-emerald-700'
                       : 'font-semibold text-red-600'
                   }
                 >
-                  {book.available}
+                  {book.availableCopies}
                 </span>
               </td>
-              <td className="py-4 pr-4 text-gray-600">{book.total}</td>
+              <td className="py-4 pr-4 text-gray-600">{book.totalCopies}</td>
               <td className="py-4 pl-2 text-right">
                 <div className="inline-flex items-center justify-end gap-1">
                   <button
                     type="button"
+                    onClick={() => onEdit?.(book)}
                     className="rounded-lg p-2 text-gray-500 transition hover:bg-gray-100 hover:text-emerald-900"
                     aria-label={`Edit ${book.title}`}
                   >
@@ -77,6 +87,7 @@ export function BookManagementTable({ books, hasFilters }: BookManagementTablePr
                   </button>
                   <button
                     type="button"
+                    onClick={() => onDelete?.(book)}
                     className="rounded-lg p-2 text-red-500 transition hover:bg-red-50 hover:text-red-700"
                     aria-label={`Delete ${book.title}`}
                   >

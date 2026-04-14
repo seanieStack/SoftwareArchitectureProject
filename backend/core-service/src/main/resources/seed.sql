@@ -327,3 +327,12 @@ ON CONFLICT DO NOTHING;
 SELECT setval('public.authors_id_seq', COALESCE((SELECT MAX(id) FROM authors), 1), true);
 SELECT setval('public.categories_id_seq', COALESCE((SELECT MAX(id) FROM categories), 1), true);
 SELECT setval('public.books_id_seq', COALESCE((SELECT MAX(id) FROM books), 1), true);
+
+-- Default test users 
+INSERT INTO users (id, created_at, email, full_name, password_hash, role) VALUES
+    (1, NOW(), 'student@studentmail.ul.ie', 'Test Student', '$2a$10$KX8SzBVOrClMYlm5ga0tjeNiNftwWMip6TdW9LujldhqZKD6paZ.O', 'STUDENT'),
+    (2, NOW(), 'staff@ul.ie',               'Test Staff',   '$2a$10$.zt7qVdI5D1/o5GoIhFwlOKyjzezBZ9OQe9.gugrFO9JVL97jtuwe', 'STAFF'),
+    (3, NOW(), 'admin@ul.ie',               'Test Admin',   '$2a$10$vc9d7gtmtnWw/UNOOOVSh.UqQJJZ4ttvzm8gxSuhtjghDpGbFgp0a', 'ADMIN')
+ON CONFLICT (email) DO NOTHING;
+
+SELECT setval('public.users_id_seq', COALESCE((SELECT MAX(id) FROM users), 1), true);

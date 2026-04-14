@@ -31,7 +31,7 @@ export async function loginRequest(
   payload: Pick<LoginFormValues, 'email' | 'password'>,
 ): Promise<AuthResponse> {
   const base = apiBase()
-  const res = await fetch(`${base}${API_PATHS.LOGIN}`, {
+  const res = await fetch(`${base}${API_PATHS.AUTH.LOGIN}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
@@ -52,7 +52,7 @@ export async function registerRequest(
   payload: RegisterRequestBody,
 ): Promise<AuthResponse> {
   const base = apiBase()
-  const res = await fetch(`${base}${API_PATHS.REGISTER}`, {
+  const res = await fetch(`${base}${API_PATHS.AUTH.REGISTER}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
@@ -66,7 +66,7 @@ export async function registerRequest(
 
 export async function refreshRequest(refreshToken: string): Promise<AuthResponse> {
   const base = apiBase()
-  const res = await fetch(`${base}${API_PATHS.REFRESH}`, {
+  const res = await fetch(`${base}${API_PATHS.AUTH.REFRESH}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ refreshToken }),
@@ -91,7 +91,7 @@ async function parseMessageResponse(res: Response): Promise<string> {
 
 export async function forgotPasswordRequest(email: string): Promise<string> {
   const base = apiBase()
-  const res = await fetch(`${base}${API_PATHS.FORGOT_PASSWORD}`, {
+  const res = await fetch(`${base}${API_PATHS.AUTH.FORGOT_PASSWORD}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email }),
@@ -104,7 +104,7 @@ export async function forgotPasswordRequest(email: string): Promise<string> {
 
 export async function resetPasswordRequest(token: string, newPassword: string): Promise<string> {
   const base = apiBase()
-  const res = await fetch(`${base}${API_PATHS.RESET_PASSWORD}`, {
+  const res = await fetch(`${base}${API_PATHS.AUTH.RESET_PASSWORD}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ token, newPassword }),

@@ -20,7 +20,7 @@ public class FineController {
     public ResponseEntity<List<FineDTO>> getFines(@PathVariable Long userId, @RequestParam(required = false) Boolean acknowledged) {
         log.trace("GET /api/fines/user/{} acknowledged={}", userId, acknowledged);
         List<FineDTO> fines;
-        if (acknowledged) {
+        if (Boolean.TRUE.equals(acknowledged)) {
             fines = fineService.getUnacknowledgedFines(userId);
         } else {
             fines = fineService.getFinesForUser(userId);
