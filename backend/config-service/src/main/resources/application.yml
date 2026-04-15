@@ -4,9 +4,15 @@ server:
 spring:
   application:
     name: config-server
+  profiles:
+    # "native" uses bundled classpath files (works offline / Docker).
+    # Override to "git" when running with internet access to use the GitHub backend.
+    active: ${SPRING_PROFILES_ACTIVE:native}
   cloud:
     config:
       server:
+        native:
+          search-locations: classpath:/config/
         git:
           uri: https://github.com/seanieStack/SoftwareArchitectureProject
           default-label: main

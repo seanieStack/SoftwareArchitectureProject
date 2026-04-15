@@ -79,16 +79,19 @@ class CoreServiceClientIntegrationTest {
     }
 
     private CoreServiceClient newClient(int retryMaxAttempts) {
-        return new CoreServiceClient(new CoreServiceClientProperties(
-                coreService.url("/").toString(),
-                Duration.ofMillis(200),
-                Duration.ofMillis(200),
-                retryMaxAttempts,
-                Duration.ofMillis(10),
-                50,
-                2,
-                2,
-                Duration.ofSeconds(5)
-        ));
+        return new CoreServiceClient(
+                new CoreServiceClientProperties(
+                        coreService.url("/").toString(),
+                        Duration.ofMillis(200),
+                        Duration.ofMillis(200),
+                        retryMaxAttempts,
+                        Duration.ofMillis(10),
+                        50,
+                        2,
+                        2,
+                        Duration.ofSeconds(5)
+                ),
+                "test-internal-secret"
+        );
     }
 }

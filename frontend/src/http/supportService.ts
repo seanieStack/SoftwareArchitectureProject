@@ -15,6 +15,15 @@ async function parseErrorResponse(res: Response): Promise<string> {
 
 // ── Borrows ───────────────────────────────────────────────────────────────────
 
+export async function createBorrow(userId: number, bookId: number, deadline: string): Promise<Borrow> {
+  const res = await authorizedFetch(API_PATHS.BORROWS.CREATE, {
+    method: 'POST',
+    body: JSON.stringify({ userId, bookId, deadline }),
+  })
+  if (!res.ok) throw new Error(await parseErrorResponse(res))
+  return res.json() as Promise<Borrow>
+}
+
 export async function getBorrowsForUser(userId: number): Promise<Borrow[]> {
   const res = await authorizedFetch(API_PATHS.BORROWS.BY_USER(userId))
   if (!res.ok) throw new Error(await parseErrorResponse(res))

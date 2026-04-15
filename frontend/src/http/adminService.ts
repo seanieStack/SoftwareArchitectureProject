@@ -1,6 +1,6 @@
 import { API_PATHS } from '../constants/api'
 import { authorizedFetch } from './client'
-import type { AdminCounts, AdminUser, AdminAnalytics } from '../types/admin'
+import type { AdminUser, AdminCounts, AdminAnalytics } from '../types/admin'
 
 async function parseErrorResponse(res: Response): Promise<string> {
   const text = await res.text()
@@ -25,6 +25,8 @@ export async function getAdminUsers(): Promise<AdminUser[]> {
   return res.json() as Promise<AdminUser[]>
 }
 
+export async function getAdminAnalytics(): Promise<AdminAnalytics> {
+  const res = await authorizedFetch(API_PATHS.ADMIN.ANALYTICS)
 export async function updateUserRole(
   userId: number,
   role: 'STUDENT' | 'STAFF' | 'ADMIN',

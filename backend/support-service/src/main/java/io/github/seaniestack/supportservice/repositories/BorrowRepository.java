@@ -18,5 +18,5 @@ public interface BorrowRepository extends JpaRepository<Borrow, Long> {
 
     List<Borrow> findByDeadlineBetweenAndStatus(LocalDateTime from, LocalDateTime to, BorrowStatus status);
 
-    Long countByStatus(BorrowStatus status);
+    long countByStatus(BorrowStatus status);
 }

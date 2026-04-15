@@ -1,10 +1,20 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAppDispatch, useAppSelector } from '../../../redux-features/store/hooks'
 import { logout } from '../../../redux-features/slices/user/userSlice'
 import { APP_ROUTES } from '../../../constants/routes'
 import { UL_LOGO_SRC, WEBSITE_LOGO_SRC } from '../../../constants/assets'
 import { DashboardUserMenu } from '../../components/dashboard/DashboardUserMenu'
+import {
+  getBorrowsForUser,
+  returnBorrow,
+  getFinesForUser,
+  acknowledgeFine,
+  payFine,
+  getNotificationsForUser,
+  markNotificationRead,
+} from '../../../http/supportService'
+import type { Borrow, Fine, Notification } from '../../../types/support'
 
 type DashboardSection = 'borrowed' | 'history' | 'notifications' | 'fines'
 
@@ -42,15 +52,189 @@ function CompassIcon({ className }: { className?: string }) {
   )
 }
 
-function SectionPanel({ section }: { section: DashboardSection }) {
-  const copy: Record<DashboardSection, string> = {
-    borrowed: 'No borrowed books.',
-    history: 'No borrow history.',
-    notifications: 'No notifications.',
-    fines: 'No fines.',
-  }
-  return <p className="text-sm text-gray-500">{copy[section]}</p>
+function fmtDate(iso: string) {
+  return new Date(iso).toLocaleDateString('en-IE', { day: 'numeric', month: 'short', year: 'numeric' })
 }
+
+// ── Borrowed Books section ────────────────────────────────────────────────────
+
+function BorrowedSection({
+  borrows,
+  loading,
+  error,
+  onReturn,
+  returning,
+}: {
+  borrows: Borrow[]
+  loading: boolean
+  error: string | null
+  onReturn: (id: number) => void
+  returning: number | null
+}) {
+  const active = borrows.filter((b) => b.status === 'BORROWED' || b.status === 'OVERDUE')
+  if (loading) return <p className="text-sm text-gray-400">Loading…</p>
+  if (error) return <p className="text-sm text-red-600">{error}</p>
+  if (active.length === 0) return <p className="text-sm text-gray-500">No borrowed books.</p>
+  return (
+    <ul className="divide-y divide-gray-100">
+      {active.map((b) => (
+        <li key={b.id} className="flex items-center justify-between gap-4 py-3">
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium text-gray-900">Book #{b.bookId}</p>
+            <p className="text-xs text-gray-500">
+              Due {fmtDate(b.deadline)}
+              {b.status === 'OVERDUE' && (
+                <span className="ml-2 font-semibold text-red-600">Overdue</span>
+              )}
+            </p>
+          </div>
+          <button
+            type="button"
+            disabled={returning === b.id}
+            onClick={() => onReturn(b.id)}
+            className="shrink-0 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700 transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-800 disabled:opacity-40"
+          >
+            {returning === b.id ? 'Returning…' : 'Return'}
+          </button>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+// ── Borrow History section ────────────────────────────────────────────────────
+
+function HistorySection({
+  borrows,
+  loading,
+  error,
+}: {
+  borrows: Borrow[]
+  loading: boolean
+  error: string | null
+}) {
+  const past = borrows.filter((b) => b.status === 'RETURNED')
+  if (loading) return <p className="text-sm text-gray-400">Loading…</p>
+  if (error) return <p className="text-sm text-red-600">{error}</p>
+  if (past.length === 0) return <p className="text-sm text-gray-500">No borrow history.</p>
+  return (
+    <ul className="divide-y divide-gray-100">
+      {past.map((b) => (
+        <li key={b.id} className="flex items-center justify-between gap-4 py-3">
+          <div>
+            <p className="text-sm font-medium text-gray-900">Book #{b.bookId}</p>
+            <p className="text-xs text-gray-500">Returned {b.returnedAt ? fmtDate(b.returnedAt) : '—'}</p>
+          </div>
+          <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-800">
+            Returned
+          </span>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+// ── Fines section ─────────────────────────────────────────────────────────────
+
+function FinesSection({
+  fines,
+  loading,
+  error,
+  onAcknowledge,
+  onPay,
+  acting,
+}: {
+  fines: Fine[]
+  loading: boolean
+  error: string | null
+  onAcknowledge: (id: number) => void
+  onPay: (id: number) => void
+  acting: number | null
+}) {
+  if (loading) return <p className="text-sm text-gray-400">Loading…</p>
+  if (error) return <p className="text-sm text-red-600">{error}</p>
+  if (fines.length === 0) return <p className="text-sm text-gray-500">No fines.</p>
+  return (
+    <ul className="divide-y divide-gray-100">
+      {fines.map((f) => (
+        <li key={f.id} className="flex items-center justify-between gap-4 py-3">
+          <div>
+            <p className="text-sm font-medium text-gray-900">€{f.amount.toFixed(2)}</p>
+            <p className="text-xs text-gray-500">Issued {fmtDate(f.issuedAt)}</p>
+          </div>
+          <div className="flex gap-2">
+            {!f.acknowledged && (
+              <button
+                type="button"
+                disabled={acting === f.id}
+                onClick={() => onAcknowledge(f.id)}
+                className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700 transition hover:border-yellow-300 hover:bg-yellow-50 hover:text-yellow-800 disabled:opacity-40"
+              >
+                Acknowledge
+              </button>
+            )}
+            {!f.paid && (
+              <button
+                type="button"
+                disabled={acting === f.id}
+                onClick={() => onPay(f.id)}
+                className="rounded-lg bg-emerald-800 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-900 disabled:opacity-40"
+              >
+                {acting === f.id ? 'Processing…' : 'Pay'}
+              </button>
+            )}
+            {f.paid && (
+              <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-800">
+                Paid
+              </span>
+            )}
+          </div>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+// ── Notifications section ─────────────────────────────────────────────────────
+
+function NotificationsSection({
+  notifications,
+  loading,
+  error,
+  onMarkRead,
+}: {
+  notifications: Notification[]
+  loading: boolean
+  error: string | null
+  onMarkRead: (id: number) => void
+}) {
+  if (loading) return <p className="text-sm text-gray-400">Loading…</p>
+  if (error) return <p className="text-sm text-red-600">{error}</p>
+  if (notifications.length === 0) return <p className="text-sm text-gray-500">No notifications.</p>
+  return (
+    <ul className="divide-y divide-gray-100">
+      {notifications.map((n) => (
+        <li key={n.id} className={`flex items-start justify-between gap-4 py-3 ${n.read ? 'opacity-60' : ''}`}>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm text-gray-800">{n.message}</p>
+            <p className="mt-0.5 text-xs text-gray-400">{fmtDate(n.createdAt)}</p>
+          </div>
+          {!n.read && (
+            <button
+              type="button"
+              onClick={() => onMarkRead(n.id)}
+              className="shrink-0 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-600 transition hover:bg-gray-50 disabled:opacity-40"
+            >
+              Mark read
+            </button>
+          )}
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+// ── Page ──────────────────────────────────────────────────────────────────────
 
 export function StudentDashboardPage() {
   const dispatch = useAppDispatch()
@@ -58,11 +242,96 @@ export function StudentDashboardPage() {
   const profile = useAppSelector((s) => s.user.profile)
   const [section, setSection] = useState<DashboardSection>('borrowed')
 
+  const [borrows, setBorrows] = useState<Borrow[]>([])
+  const [borrowsLoading, setBorrowsLoading] = useState(true)
+  const [borrowsError, setBorrowsError] = useState<string | null>(null)
+  const [returning, setReturning] = useState<number | null>(null)
+
+  const [fines, setFines] = useState<Fine[]>([])
+  const [finesLoading, setFinesLoading] = useState(true)
+  const [finesError, setFinesError] = useState<string | null>(null)
+  const [actingFine, setActingFine] = useState<number | null>(null)
+
+  const [notifications, setNotifications] = useState<Notification[]>([])
+  const [notifLoading, setNotifLoading] = useState(true)
+  const [notifError, setNotifError] = useState<string | null>(null)
+
   const displayName = useMemo(() => displayNameFromProfile(profile), [profile])
+
+  useEffect(() => {
+    if (!profile?.id) return
+    const uid = profile.id
+    getBorrowsForUser(uid)
+      .then(setBorrows)
+      .catch((e: unknown) => setBorrowsError(e instanceof Error ? e.message : 'Failed to load'))
+      .finally(() => setBorrowsLoading(false))
+    getFinesForUser(uid)
+      .then(setFines)
+      .catch((e: unknown) => setFinesError(e instanceof Error ? e.message : 'Failed to load'))
+      .finally(() => setFinesLoading(false))
+    getNotificationsForUser(uid)
+      .then(setNotifications)
+      .catch((e: unknown) => setNotifError(e instanceof Error ? e.message : 'Failed to load'))
+      .finally(() => setNotifLoading(false))
+  }, [profile?.id])
+
+  async function handleReturn(borrowId: number) {
+    setReturning(borrowId)
+    try {
+      const updated = await returnBorrow(borrowId)
+      setBorrows((prev) => prev.map((b) => (b.id === updated.id ? updated : b)))
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Failed to return book')
+    } finally {
+      setReturning(null)
+    }
+  }
+
+  async function handleAcknowledge(fineId: number) {
+    setActingFine(fineId)
+    try {
+      await acknowledgeFine(fineId)
+      setFines((prev) => prev.map((f) => (f.id === fineId ? { ...f, acknowledged: true } : f)))
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Failed to acknowledge fine')
+    } finally {
+      setActingFine(null)
+    }
+  }
+
+  async function handlePay(fineId: number) {
+    setActingFine(fineId)
+    try {
+      await payFine(fineId)
+      setFines((prev) => prev.map((f) => (f.id === fineId ? { ...f, paid: true } : f)))
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Failed to pay fine')
+    } finally {
+      setActingFine(null)
+    }
+  }
+
+  async function handleMarkRead(notifId: number) {
+    try {
+      await markNotificationRead(notifId)
+      setNotifications((prev) => prev.map((n) => (n.id === notifId ? { ...n, read: true } : n)))
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Failed to mark notification as read')
+    }
+  }
 
   const onLogout = () => {
     dispatch(logout())
     navigate(APP_ROUTES.LOGIN, { replace: true })
+  }
+
+  const unreadCount = notifications.filter((n) => !n.read).length
+  const unpaidFines = fines.filter((f) => !f.paid).length
+
+  function sectionLabel(id: DashboardSection) {
+    if (id === 'notifications' && unreadCount > 0) return `Notifications (${unreadCount})`
+    if (id === 'fines' && unpaidFines > 0) return `Fines (${unpaidFines})`
+    return SECTIONS.find((s) => s.id === id)?.label ?? id
   }
 
   return (
@@ -121,7 +390,7 @@ export function StudentDashboardPage() {
                     }`}
                     aria-hidden
                   />
-                  {item.label}
+                  {sectionLabel(item.id)}
                 </button>
               )
             })}
@@ -167,11 +436,42 @@ export function StudentDashboardPage() {
           </div>
 
           <div className="rounded-2xl border border-gray-200/80 bg-white p-5 shadow-md md:p-6">
-            <h2 className="text-lg font-semibold text-gray-900">
-              {SECTIONS.find((s) => s.id === section)?.label}
-            </h2>
+            <h2 className="text-lg font-semibold text-gray-900">{sectionLabel(section)}</h2>
             <div className="mt-5">
-              <SectionPanel section={section} />
+              {section === 'borrowed' && (
+                <BorrowedSection
+                  borrows={borrows}
+                  loading={borrowsLoading}
+                  error={borrowsError}
+                  onReturn={handleReturn}
+                  returning={returning}
+                />
+              )}
+              {section === 'history' && (
+                <HistorySection
+                  borrows={borrows}
+                  loading={borrowsLoading}
+                  error={borrowsError}
+                />
+              )}
+              {section === 'fines' && (
+                <FinesSection
+                  fines={fines}
+                  loading={finesLoading}
+                  error={finesError}
+                  onAcknowledge={handleAcknowledge}
+                  onPay={handlePay}
+                  acting={actingFine}
+                />
+              )}
+              {section === 'notifications' && (
+                <NotificationsSection
+                  notifications={notifications}
+                  loading={notifLoading}
+                  error={notifError}
+                  onMarkRead={handleMarkRead}
+                />
+              )}
             </div>
           </div>
         </main>
