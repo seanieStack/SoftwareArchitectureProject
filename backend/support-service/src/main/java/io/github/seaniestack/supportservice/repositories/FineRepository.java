@@ -11,4 +11,6 @@ public interface FineRepository extends JpaRepository<Fine, Long> {
     List<Fine> findByUserIdAndAcknowledgedFalse(Long userId);
 
     Optional<Fine> findByBorrowIdAndPaidFalse(Long borrowId);
+
+    long countByPaidFalse();
 }

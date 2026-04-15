@@ -16,11 +16,19 @@ spring:
     hibernate:
       ddl-auto: update
     database-platform: org.hibernate.dialect.PostgreSQLDialect
+    defer-datasource-initialization: true
+  sql:
+    init:
+      mode: always
+      data-locations: classpath:seed.sql
   rabbitmq:
     host: localhost
     port: 5672
     username: ${RABBITMQ_USERNAME}
     password: ${RABBITMQ_PASSWORD}
+
+internal:
+  secret: ${INTERNAL_SECRET:dev-internal-secret-change-me}
 
 core-service:
   url: ${CORE_SERVICE_URL:http://localhost:8081}
