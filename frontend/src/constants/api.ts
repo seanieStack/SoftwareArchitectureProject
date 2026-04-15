@@ -38,4 +38,11 @@ export const API_PATHS = {
     BY_USER: (userId: number | string) => `/api/notifications/user/${userId}`,
     MARK_READ: (notificationId: number | string) => `/api/notifications/${notificationId}/read`,
   },
+
+  // Admin | core-service + support-service (via api-gateway)
+  ADMIN: {
+    COUNTS: '/api/admin/counts',
+    USERS: '/api/admin/users',
+    ANALYTICS: '/api/admin/analytics',
+  },
 } as const

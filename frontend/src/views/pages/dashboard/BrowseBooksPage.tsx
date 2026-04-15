@@ -3,7 +3,9 @@ import { Link } from 'react-router-dom'
 import { APP_ROUTES } from '../../../constants/routes'
 import { WEBSITE_LOGO_SRC } from '../../../constants/assets'
 import { getBooks } from '../../../http/bookService'
+import { createBorrow } from '../../../http/supportService'
 import type { Book } from '../../../types/catalog'
+import { useAppSelector } from '../../../redux-features/store/hooks'
 
 // ── Icons ────────────────────────────────────────────────────────────────────
 
@@ -27,7 +29,15 @@ function BookOpenIcon({ className }: { className?: string }) {
 
 // ── Book card ─────────────────────────────────────────────────────────────────
 
-function BookCard({ book }: { book: Book }) {
+function BookCard({
+  book,
+  onBorrow,
+  borrowing,
+}: {
+  book: Book
+  onBorrow: (book: Book) => void
+  borrowing: boolean
+}) {
   const available = book.availableCopies > 0
 
   return (
@@ -67,10 +77,11 @@ function BookCard({ book }: { book: Book }) {
           </span>
           <button
             type="button"
-            disabled={!available}
+            disabled={!available || borrowing}
+            onClick={() => onBorrow(book)}
             className="rounded-lg bg-emerald-800 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-emerald-900 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            Borrow
+            {borrowing ? 'Borrowing…' : 'Borrow'}
           </button>
         </div>
       </div>
@@ -86,6 +97,9 @@ export function BrowseBooksPage() {
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('')
+  const [borrowingId, setBorrowingId] = useState<number | null>(null)
+
+  const userId = useAppSelector((s) => s.user.profile?.id)
 
   useEffect(() => {
     getBooks()
@@ -95,6 +109,26 @@ export function BrowseBooksPage() {
       )
       .finally(() => setLoading(false))
   }, [])
+
+  async function handleBorrow(book: Book) {
+    if (!userId) return
+    setBorrowingId(book.id)
+    try {
+      const deadline = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .slice(0, 19)
+      await createBorrow(userId, book.id, deadline)
+      setBooks((prev) =>
+        prev.map((b) =>
+          b.id === book.id ? { ...b, availableCopies: b.availableCopies - 1 } : b,
+        ),
+      )
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to borrow book')
+    } finally {
+      setBorrowingId(null)
+    }
+  }
 
   const categories = useMemo(() => {
     const set = new Set(books.flatMap((b) => b.categories))
@@ -205,7 +239,12 @@ export function BrowseBooksPage() {
         {!loading && !error && filtered.length > 0 && (
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
             {filtered.map((book) => (
-              <BookCard key={book.id} book={book} />
+              <BookCard
+                key={book.id}
+                book={book}
+                onBorrow={handleBorrow}
+                borrowing={borrowingId === book.id}
+              />
             ))}
           </div>
         )}
