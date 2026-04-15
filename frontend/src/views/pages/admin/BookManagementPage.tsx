@@ -5,7 +5,7 @@ import { DashboardShell } from '../../../layout/DashboardShell'
 import { BookManagementTable } from '../../components/tables/BookManagementTable'
 import { BookFormModal } from '../../components/modals/BookFormModal'
 import { SearchIcon } from '../../components/utils/adminIcons'
-import { getBooks, createBook, updateBook, deleteBook } from '../../../http/bookService'
+import { getBooks, createBook, updateBook, retireBook } from '../../../http/bookService'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -16,160 +16,6 @@ function matchesSearch(book: Book, q: string) {
     book.title.toLowerCase().includes(s) ||
     book.authors.some((a) => a.toLowerCase().includes(s)) ||
     book.isbn.replace(/\s/g, '').includes(s.replace(/\s/g, ''))
-  )
-}
-
-function splitLines(val: string): string[] {
-  return val
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean)
-}
-
-// ── Book form modal ───────────────────────────────────────────────────────────
-
-type BookFormState = {
-  title: string
-  isbn: string
-  authors: string
-  categories: string
-  totalCopies: string
-  availableCopies: string
-}
-
-function emptyForm(): BookFormState {
-  return { title: '', isbn: '', authors: '', categories: '', totalCopies: '1', availableCopies: '1' }
-}
-
-function bookToForm(book: Book): BookFormState {
-  return {
-    title: book.title,
-    isbn: book.isbn,
-    authors: book.authors.join(', '),
-    categories: book.categories.join(', '),
-    totalCopies: String(book.totalCopies),
-    availableCopies: String(book.availableCopies),
-  }
-}
-
-function formToRequest(form: BookFormState): BookRequest {
-  return {
-    title: form.title.trim(),
-    isbn: form.isbn.trim(),
-    authors: splitLines(form.authors),
-    categories: splitLines(form.categories),
-    totalCopies: parseInt(form.totalCopies, 10) || 1,
-    availableCopies: parseInt(form.availableCopies, 10) || 0,
-  }
-}
-
-function BookFormModal({
-  book,
-  onClose,
-  onSave,
-}: {
-  book: Book | null
-  onClose: () => void
-  onSave: (req: BookRequest, id?: number) => Promise<void>
-}) {
-  const [form, setForm] = useState<BookFormState>(book ? bookToForm(book) : emptyForm())
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  function field(key: keyof BookFormState) {
-    return {
-      value: form[key],
-      onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
-        setForm((prev) => ({ ...prev, [key]: e.target.value })),
-    }
-  }
-
-  async function handleSubmit(e: { preventDefault: () => void }) {
-    e.preventDefault()
-    setSaving(true)
-    setError(null)
-    try {
-      await onSave(formToRequest(form), book?.id)
-      onClose()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Save failed')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
-    >
-      <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
-        <h2 className="mb-5 text-lg font-semibold text-gray-900">
-          {book ? 'Edit book' : 'Add book'}
-        </h2>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {[
-            { label: 'Title', key: 'title' as const, required: true },
-            { label: 'ISBN', key: 'isbn' as const, required: true },
-            { label: 'Authors (comma-separated)', key: 'authors' as const, required: true },
-            { label: 'Categories (comma-separated)', key: 'categories' as const, required: false },
-          ].map(({ label, key, required }) => (
-            <div key={key}>
-              <label className="mb-1 block text-xs font-medium text-gray-700">{label}</label>
-              <input
-                type="text"
-                required={required}
-                {...field(key)}
-                className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 focus:border-emerald-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-700/20"
-              />
-            </div>
-          ))}
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="mb-1 block text-xs font-medium text-gray-700">Total copies</label>
-              <input
-                type="number"
-                min={1}
-                required
-                {...field('totalCopies')}
-                className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 focus:border-emerald-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-700/20"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-medium text-gray-700">Available copies</label>
-              <input
-                type="number"
-                min={0}
-                required
-                {...field('availableCopies')}
-                className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 focus:border-emerald-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-700/20"
-              />
-            </div>
-          </div>
-
-          {error && <p className="text-sm text-red-600">{error}</p>}
-
-          <div className="flex justify-end gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={saving}
-              className="rounded-lg bg-emerald-800 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-900 disabled:opacity-50"
-            >
-              {saving ? 'Saving…' : book ? 'Save changes' : 'Add book'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
   )
 }
 
@@ -203,8 +49,7 @@ export function BookManagementPage() {
   const filteredBooks = useMemo(() => {
     return books.filter((book) => {
       if (!matchesSearch(book, search)) return false
-      return !(categoryFilter && !book.categories.includes(categoryFilter));
-
+      return !(categoryFilter && !book.categories.includes(categoryFilter))
     })
   }, [books, search, categoryFilter])
 
@@ -234,14 +79,15 @@ export function BookManagementPage() {
     setShowModal(false)
   }
 
-  async function handleSave(req: BookRequest, id?: number) {
-    if (id !== undefined) {
-      const updated = await updateBook(id, req)
-      setBooks((prev) => prev.map((b) => (b.id === id ? updated : b)))
+  async function handleSave(data: BookRequest) {
+    if (modalBook) {
+      const updated = await updateBook(modalBook.id, data)
+      setBooks((prev) => prev.map((b) => (b.id === updated.id ? updated : b)))
     } else {
-      const created = await createBook(req)
+      const created = await createBook(data)
       setBooks((prev) => [created, ...prev])
     }
+    closeModal()
   }
 
   async function handleDelete(book: Book) {
@@ -256,19 +102,6 @@ export function BookManagementPage() {
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to retire book')
     }
-  }
-
-  async function handleSaveNew(data: BookRequest) {
-    const created = await createBook(data)
-    setBooks((prev) => [...prev, created])
-    setModal({ kind: 'closed' })
-  }
-
-  async function handleSaveEdit(data: BookRequest) {
-    if (modal.kind !== 'edit') return
-    const updated = await updateBook(modal.book.id, data)
-    setBooks((prev) => prev.map((b) => (b.id === updated.id ? updated : b)))
-    setModal({ kind: 'closed' })
   }
 
   return (

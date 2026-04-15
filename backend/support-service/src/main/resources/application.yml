@@ -41,9 +41,6 @@ core-service:
   circuit-breaker-minimum-number-of-calls: ${CORE_SERVICE_CB_MINIMUM_CALLS:2}
   circuit-breaker-wait-duration-in-open-state: ${CORE_SERVICE_CB_WAIT_OPEN:5s}
 
-internal:
-  secret: ${INTERNAL_SECRET:dev-internal-secret-change-me}
-
 eureka:
   client:
     service-url:

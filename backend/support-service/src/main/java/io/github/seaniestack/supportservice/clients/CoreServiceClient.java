@@ -8,7 +8,7 @@ import io.github.resilience4j.retry.RetryConfig;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
@@ -26,13 +26,9 @@ public class CoreServiceClient {
             CoreServiceClientProperties properties,
             @Value("${internal.secret}") String internalSecret
     ) {
-        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
-        requestFactory.setConnectTimeout(properties.connectTimeout());
-        requestFactory.setReadTimeout(properties.readTimeout());
-
         this.restClient = RestClient.builder()
                 .baseUrl(properties.url())
-                .requestFactory(requestFactory)
+                .requestFactory(new HttpComponentsClientHttpRequestFactory())
                 .defaultHeader("X-Internal-Secret", internalSecret)
                 .build();
 
@@ -156,34 +152,6 @@ public class CoreServiceClient {
             throw fallbackUnavailable("core-service circuit breaker is open", e);
         } catch (Exception e) {
             throw fallbackUnavailable(failureMessage, e);
-        }
-    }
-
-    public void borrowBook(Long bookId) {
-        log.debug("Decrementing available copies for book {} in core-service", bookId);
-        try {
-            restClient.patch()
-                    .uri("/api/internal/books/{bookId}/borrow", bookId)
-                    .retrieve()
-                    .toBodilessEntity();
-            log.debug("Decremented copies for book {}", bookId);
-        } catch (Exception e) {
-            log.error("Failed to decrement copies for book {}: {}", bookId, e.getMessage());
-            throw new CoreServiceUnavailableException("Core service unavailable", e);
-        }
-    }
-
-    public void returnBook(Long bookId) {
-        log.debug("Incrementing available copies for book {} in core-service", bookId);
-        try {
-            restClient.patch()
-                    .uri("/api/internal/books/{bookId}/return", bookId)
-                    .retrieve()
-                    .toBodilessEntity();
-            log.debug("Incremented copies for book {}", bookId);
-        } catch (Exception e) {
-            log.error("Failed to increment copies for book {}: {}", bookId, e.getMessage());
-            throw new CoreServiceUnavailableException("Core service unavailable", e);
         }
     }
 

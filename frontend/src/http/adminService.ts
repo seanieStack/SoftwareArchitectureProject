@@ -26,7 +26,11 @@ export async function getAdminUsers(): Promise<AdminUser[]> {
 }
 
 export async function getAdminAnalytics(): Promise<AdminAnalytics> {
-  const res = await authorizedFetch(API_PATHS.ADMIN.ANALYTICS)
+  const res = await authorizedFetch(API_PATHS.ADMIN_ANALYTICS)
+  if (!res.ok) throw new Error(await parseErrorResponse(res))
+  return res.json() as Promise<AdminAnalytics>
+}
+
 export async function updateUserRole(
   userId: number,
   role: 'STUDENT' | 'STAFF' | 'ADMIN',
@@ -44,10 +48,4 @@ export async function deleteUser(userId: number): Promise<void> {
     method: 'DELETE',
   })
   if (!res.ok) throw new Error(await parseErrorResponse(res))
-}
-
-export async function getAdminAnalytics(): Promise<AdminAnalytics> {
-  const res = await authorizedFetch(API_PATHS.ADMIN_ANALYTICS)
-  if (!res.ok) throw new Error(await parseErrorResponse(res))
-  return res.json() as Promise<AdminAnalytics>
 }
