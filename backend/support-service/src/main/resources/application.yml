@@ -10,8 +10,8 @@ spring:
     import: optional:configserver:${CONFIG_SERVER_URI:http://localhost:8888}
   datasource:
     url: jdbc:postgresql://localhost:5433/support
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
+    username: ${SUPPORT_DB_USER}
+    password: ${SUPPORT_DB_PASSWORD}
   jpa:
     hibernate:
       ddl-auto: update
@@ -40,6 +40,9 @@ core-service:
   circuit-breaker-sliding-window-size: ${CORE_SERVICE_CB_SLIDING_WINDOW_SIZE:4}
   circuit-breaker-minimum-number-of-calls: ${CORE_SERVICE_CB_MINIMUM_CALLS:2}
   circuit-breaker-wait-duration-in-open-state: ${CORE_SERVICE_CB_WAIT_OPEN:5s}
+
+internal:
+  secret: ${INTERNAL_SECRET:dev-internal-secret-change-me}
 
 eureka:
   client:

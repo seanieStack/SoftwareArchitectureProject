@@ -15,6 +15,7 @@ export const API_PATHS = {
     SEARCH: '/api/books/search',
     BY_ID: (bookId: number | string) => `/api/books/${bookId}`,
     AVAILABILITY: (bookId: number | string) => `/api/books/${bookId}/availability`,
+    RETIRE: (bookId: number | string) => `/api/books/${bookId}/retire`,
   },
 
   // Borrows | support-service
@@ -38,11 +39,14 @@ export const API_PATHS = {
     BY_USER: (userId: number | string) => `/api/notifications/user/${userId}`,
     MARK_READ: (notificationId: number | string) => `/api/notifications/${notificationId}/read`,
   },
-
-  // Admin | core-service + support-service (via api-gateway)
+  // Admin (users + counts) | core-service
   ADMIN: {
     COUNTS: '/api/admin/counts',
     USERS: '/api/admin/users',
-    ANALYTICS: '/api/admin/analytics',
+    USER_BY_ID: (userId: number | string) => `/api/admin/users/${userId}`,
+    USER_ROLE: (userId: number | string) => `/api/admin/users/${userId}/role`,
   },
+
+  // Admin (analytics) | support-service
+  ADMIN_ANALYTICS: '/api/admin/analytics',
 } as const

@@ -71,4 +71,14 @@ public class BookController {
         bookService.deleteBook(bookId);
         return ResponseEntity.noContent().build();
     }
+
+    @PatchMapping("/{bookId}/retire")
+    public ResponseEntity<BookDTO> retireBook(@PathVariable Long bookId) {
+        log.trace("PATCH /api/books/{}/retire", bookId);
+        BookDTO result = bookService.retireAvailableCopies(bookId);
+        if (result == null) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(result);
+    }
 }

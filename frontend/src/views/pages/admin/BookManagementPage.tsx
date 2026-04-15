@@ -3,6 +3,7 @@ import { ADMIN_DASHBOARD_NAV } from '../../../constants/adminNav'
 import type { Book, BookRequest } from '../../../types/catalog'
 import { DashboardShell } from '../../../layout/DashboardShell'
 import { BookManagementTable } from '../../components/tables/BookManagementTable'
+import { BookFormModal } from '../../components/modals/BookFormModal'
 import { SearchIcon } from '../../components/utils/adminIcons'
 import { getBooks, createBook, updateBook, deleteBook } from '../../../http/bookService'
 
@@ -202,8 +203,8 @@ export function BookManagementPage() {
   const filteredBooks = useMemo(() => {
     return books.filter((book) => {
       if (!matchesSearch(book, search)) return false
-      if (categoryFilter && !book.categories.includes(categoryFilter)) return false
-      return true
+      return !(categoryFilter && !book.categories.includes(categoryFilter));
+
     })
   }, [books, search, categoryFilter])
 
@@ -246,11 +247,28 @@ export function BookManagementPage() {
   async function handleDelete(book: Book) {
     if (!window.confirm(`Delete "${book.title}"?`)) return
     try {
-      await deleteBook(book.id)
-      setBooks((prev) => prev.filter((b) => b.id !== book.id))
+      const updated = await retireBook(book.id)
+      if (updated) {
+        setBooks((prev) => prev.map((b) => (b.id === updated.id ? updated : b)))
+      } else {
+        setBooks((prev) => prev.filter((b) => b.id !== book.id))
+      }
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to delete book')
+      alert(err instanceof Error ? err.message : 'Failed to retire book')
     }
+  }
+
+  async function handleSaveNew(data: BookRequest) {
+    const created = await createBook(data)
+    setBooks((prev) => [...prev, created])
+    setModal({ kind: 'closed' })
+  }
+
+  async function handleSaveEdit(data: BookRequest) {
+    if (modal.kind !== 'edit') return
+    const updated = await updateBook(modal.book.id, data)
+    setBooks((prev) => prev.map((b) => (b.id === updated.id ? updated : b)))
+    setModal({ kind: 'closed' })
   }
 
   return (

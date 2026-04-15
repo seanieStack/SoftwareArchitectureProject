@@ -31,6 +31,15 @@ export function AdminDashboard() {
   useEffect(() => {
     getAdminCounts().then(setCounts).catch(() => undefined)
     getAdminAnalytics().then(setAnalytics).catch(() => undefined)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    Promise.all([getAdminCounts(), getAdminAnalytics()])
+      .then(([c, a]) => {
+        setCounts(c)
+        setAnalytics(a)
+      })
+      .catch((err: unknown) => setError(err instanceof Error ? err.message : 'Failed to load stats'))
   }, [])
 
   return (
@@ -74,8 +83,29 @@ export function AdminDashboard() {
             <StatCard label="Overdue loans" value={analytics?.overdueLoans ?? '—'} />
             <StatCard label="Returned (all time)" value={analytics?.returnedLoans ?? '—'} />
             <StatCard label="Outstanding fines" value={analytics?.outstandingFines ?? '—'} />
+        {error ? (
+          <p className="text-sm text-red-600">{error}</p>
+        ) : (
+          <div>
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">
+              At a glance
+            </h2>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <StatCard
+                label="Active loans"
+                value={analytics ? String(analytics.activeBorrows) : '...'}
+              />
+              <StatCard
+                label="Titles in catalog"
+                value={counts ? String(counts.totalBooks) : '...'}
+              />
+              <StatCard
+                label="Registered users"
+                value={counts ? String(counts.registeredUsers) : '...'}
+              />
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </DashboardShell>
   )

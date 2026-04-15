@@ -20,7 +20,9 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, GatewayHeaderAuthFilter gatewayHeaderAuthFilter)
+    public SecurityFilterChain securityFilterChain(HttpSecurity http,
+                                                   GatewayHeaderAuthFilter gatewayHeaderAuthFilter,
+                                                   InternalSecretFilter internalSecretFilter)
             throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
@@ -32,11 +34,15 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/core-service/**").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/internal/**").permitAll()
                         .requestMatchers(HttpMethod.POST,   "/api/books").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT,    "/api/books/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/books/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PATCH,  "/api/books/**").hasRole("ADMIN")
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
+                .addFilterBefore(internalSecretFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(gatewayHeaderAuthFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
