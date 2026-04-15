@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/SoftwareArch.iml" filepath="$PROJECT_DIR$/.idea/SoftwareArch.iml" />
+      <module fileurl="file://$PROJECT_DIR$/backend/core-service/core-service.iml" filepath="$PROJECT_DIR$/backend/core-service/core-service.iml" />
     </modules>
   </component>
 </project>

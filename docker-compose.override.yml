@@ -1,0 +1,19 @@
+services:
+  frontend:
+    platform: linux/amd64
+  eureka-server:
+    platform: linux/amd64
+  config-service:
+    platform: linux/amd64
+  core-service:
+    platform: linux/amd64
+  support-service:
+    platform: linux/amd64
+  api-gateway:
+    platform: linux/amd64
+  core-db:
+    platform: linux/amd64
+  support-db:
+    platform: linux/amd64
+  rabbitmq:
+    platform: linux/amd64
