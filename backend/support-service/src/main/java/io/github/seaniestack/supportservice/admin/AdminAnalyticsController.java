@@ -20,10 +20,11 @@ public class AdminAnalyticsController {
 
     @GetMapping("/analytics")
     public ResponseEntity<AnalyticsDTO> getAnalytics() {
-        long active = borrowRepository.countByStatus(BorrowStatus.BORROWED);
-        long returned = borrowRepository.countByStatus(BorrowStatus.RETURNED);
-        long overdue = borrowRepository.countByStatus(BorrowStatus.OVERDUE);
-        long outstandingFines = fineRepository.countByPaidFalse();
-        return ResponseEntity.ok(new AnalyticsDTO(active, returned, overdue, outstandingFines));
+        long totalBorrows = borrowRepository.count();
+        long activeBorrows = borrowRepository.countByStatus(BorrowStatus.BORROWED);
+        long overdueBorrows = borrowRepository.countByStatus(BorrowStatus.OVERDUE);
+        long totalFinesCollected = fineRepository.countByPaidTrue();
+        long unpaidFines = fineRepository.countByPaidFalse();
+        return ResponseEntity.ok(new AnalyticsDTO(totalBorrows, activeBorrows, overdueBorrows, totalFinesCollected, unpaidFines));
     }
 }

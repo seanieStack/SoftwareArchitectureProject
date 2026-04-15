@@ -27,10 +27,6 @@ function StatCard({
 export function AdminDashboard() {
   const [counts, setCounts] = useState<AdminCounts | null>(null)
   const [analytics, setAnalytics] = useState<AdminAnalytics | null>(null)
-
-  useEffect(() => {
-    getAdminCounts().then(setCounts).catch(() => undefined)
-    getAdminAnalytics().then(setAnalytics).catch(() => undefined)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -43,10 +39,7 @@ export function AdminDashboard() {
   }, [])
 
   return (
-    <DashboardShell
-      roleLabel="Administrator"
-      navItems={[...ADMIN_DASHBOARD_NAV]}
-    >
+    <DashboardShell roleLabel="Administrator" navItems={[...ADMIN_DASHBOARD_NAV]}>
       <div className="mx-auto max-w-4xl space-y-8">
         <div>
           <h1 className="text-2xl font-semibold text-gray-900">Your admin home</h1>
@@ -63,26 +56,6 @@ export function AdminDashboard() {
           </p>
         </div>
 
-        <div>
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">
-            Catalog &amp; users
-          </h2>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <StatCard label="Total users" value={counts?.totalUsers ?? '—'} hint={counts ? `${counts.totalStudents} students · ${counts.totalStaff} staff` : undefined} />
-            <StatCard label="Titles in catalog" value={counts?.totalBooks ?? '—'} />
-            <StatCard label="Admins" value={counts?.totalAdmins ?? '—'} />
-          </div>
-        </div>
-
-        <div>
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">
-            Loan activity
-          </h2>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard label="Active loans" value={analytics?.activeLoans ?? '—'} />
-            <StatCard label="Overdue loans" value={analytics?.overdueLoans ?? '—'} />
-            <StatCard label="Returned (all time)" value={analytics?.returnedLoans ?? '—'} />
-            <StatCard label="Outstanding fines" value={analytics?.outstandingFines ?? '—'} />
         {error ? (
           <p className="text-sm text-red-600">{error}</p>
         ) : (

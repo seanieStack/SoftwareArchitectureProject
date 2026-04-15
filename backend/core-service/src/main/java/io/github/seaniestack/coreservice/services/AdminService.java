@@ -3,7 +3,6 @@ package io.github.seaniestack.coreservice.services;
 import io.github.seaniestack.coreservice.auth.domain.User;
 import io.github.seaniestack.coreservice.auth.domain.UserRole;
 import io.github.seaniestack.coreservice.auth.repository.UserRepository;
-import io.github.seaniestack.coreservice.clients.SupportServiceClient;
 import io.github.seaniestack.coreservice.dtos.StatsDTO;
 import io.github.seaniestack.coreservice.dtos.UserDTO;
 import io.github.seaniestack.coreservice.exceptions.ResourceNotFoundException;
@@ -21,13 +20,11 @@ public class AdminService {
 
     private final BookRepository bookRepository;
     private final UserRepository userRepository;
-    private final SupportServiceClient supportServiceClient;
 
     public StatsDTO getCounts() {
         StatsDTO stats = new StatsDTO();
         stats.setTotalBooks(bookRepository.count());
         stats.setRegisteredUsers(userRepository.count());
-        stats.setActiveLoans(supportServiceClient.getActiveLoans());
         return stats;
     }
 
