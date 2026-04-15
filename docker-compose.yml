@@ -63,6 +63,7 @@ services:
       - "8888:8888"
     environment:
       EUREKA_URI: http://eureka-server:8761/eureka/
+      SPRING_PROFILES_ACTIVE: native
     depends_on:
       eureka-server:
         condition: service_healthy
