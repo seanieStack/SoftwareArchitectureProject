@@ -145,7 +145,90 @@ All requests go through the API Gateway at `http://localhost:8080`.
 
 ## Deployment
 
-- not implemented
+The project ships with a full production deployment pipeline targeting an **Oracle Cloud Always Free** ARM instance (Ubuntu 22.04).
+
+### Architecture
+
+```
+Internet
+   │
+   ▼
+Oracle Cloud VM (public IP)
+   │
+   ├─ NGINX (reverse proxy + TLS termination)
+   │      ├─ elibrary.example.com  → frontend container  (port 3000)
+   │      └─ api.elibrary.example.com → api-gateway container (port 8080)
+   │
+   └─ Docker Compose (internal network)
+          ├─ frontend          (NGINX serving built React SPA)
+          ├─ api-gateway
+          ├─ core-service      → core-db (PostgreSQL, internal only)
+          ├─ support-service   → support-db (PostgreSQL, internal only)
+          ├─ eureka-server
+          ├─ config-service    (mounts ~/config-repo)
+          └─ rabbitmq          (internal only)
+```
+
+### Files
+
+| File | Purpose |
+|---|---|
+| `docker-compose.prod.yml` | Production Compose — pulls images from Docker Hub, no ports exposed for databases/brokers |
+| `.github/workflows/production-release.yml` | CI/CD pipeline — runs tests, builds all services in parallel, pushes to Docker Hub, deploys via SSH |
+| `nginx/elibrary.conf` | NGINX reverse proxy config with HTTPS and security headers |
+| `scripts/setup-vm.sh` | One-time Oracle VM provisioning script |
+| `frontend/Dockerfile` | Multi-stage build: Vite compile → NGINX static server |
+| `backend/*/Dockerfile` | Multi-stage build for each Spring Boot service: Maven compile (JDK Alpine) → lean runtime (JRE Alpine) |
+
+### Step 1 — Oracle Cloud VM
+
+1. Create an Ampere (ARM) instance with Ubuntu 22.04, at least 4 OCPUs / 12 GB RAM.
+2. Add VCN Ingress Rules for ports **22**, **80**, and **443**.
+3. SSH into the VM and run:
+
+```bash
+chmod +x scripts/setup-vm.sh && sudo ./scripts/setup-vm.sh
+```
+
+Edit the variables at the top of the script first (`DOMAIN`, `API_DOMAIN`, `CONFIG_REPO_URL`).
+
+### Step 2 — GitHub Secrets
+
+Go to **Settings → Secrets and variables → Actions** and add:
+
+| Secret | Value |
+|---|---|
+| `DOCKER_USERNAME` | Your Docker Hub username |
+| `DOCKER_PASSWORD` | Your Docker Hub access token |
+| `PROD_SERVER_IP` | Public IP of the Oracle VM |
+| `PROD_SERVER_USER` | SSH user (usually `ubuntu`) |
+| `PROD_SSH_KEY` | Contents of your `.pem` private key |
+| `CORE_DB_USER` | PostgreSQL user for core-db |
+| `CORE_DB_PASSWORD` | PostgreSQL password for core-db |
+| `CORE_DB_NAME` | Database name for core-db |
+| `SUPPORT_DB_USER` | PostgreSQL user for support-db |
+| `SUPPORT_DB_PASSWORD` | PostgreSQL password for support-db |
+| `SUPPORT_DB_NAME` | Database name for support-db |
+| `RABBITMQ_USER` | RabbitMQ username |
+| `RABBITMQ_PASSWORD` | RabbitMQ password |
+
+### Step 3 — Deploy
+
+Push to `main`. The GitHub Actions pipeline will:
+
+1. Build all 5 Spring Boot services **in parallel** using a matrix strategy.
+2. Build the React frontend with a multi-stage Docker build (Vite → NGINX).
+3. Push all images to Docker Hub.
+4. SSH into the Oracle VM, pull the new images, and restart changed containers only.
+
+### DNS
+
+Point two A records at the VM's public IP in your registrar:
+
+```
+@    →  <Oracle VM IP>    # elibrary.example.com
+api  →  <Oracle VM IP>    # api.elibrary.example.com
+```
 
 ## Team & Roles
 

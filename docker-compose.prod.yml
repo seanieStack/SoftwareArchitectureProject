@@ -1,0 +1,169 @@
+services:
+
+  # ─── Infrastructure ────────────────────────────────────────────────────────
+
+  core-db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${CORE_DB_USER}
+      POSTGRES_PASSWORD: ${CORE_DB_PASSWORD}
+      POSTGRES_DB: ${CORE_DB_NAME}
+    volumes:
+      - core-db-data:/var/lib/postgresql/data
+    # No ports exposed — only reachable by services on the internal Docker network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${CORE_DB_USER} -d ${CORE_DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  support-db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${SUPPORT_DB_USER}
+      POSTGRES_PASSWORD: ${SUPPORT_DB_PASSWORD}
+      POSTGRES_DB: ${SUPPORT_DB_NAME}
+    volumes:
+      - support-db-data:/var/lib/postgresql/data
+    # No ports exposed — only reachable by services on the internal Docker network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${SUPPORT_DB_USER} -d ${SUPPORT_DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:4-management-alpine
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    # No ports exposed — management UI and AMQP are internal only in production
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 30s
+      retries: 12
+      start_period: 90s
+
+  # ─── Service Discovery & Config ─────────────────────────────────────────────
+
+  eureka-server:
+    image: ${DOCKER_ORG}/elibrary-eureka-server:latest
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8761/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+  config-service:
+    image: ${DOCKER_ORG}/elibrary-config-service:latest
+    restart: unless-stopped
+    environment:
+      EUREKA_URI: http://eureka-server:8761/eureka/
+    volumes:
+      # The config repository must be cloned on the server at ~/config-repo before first deploy.
+      # See scripts/setup-vm.sh for instructions.
+      - ${HOME}/config-repo:/root/config-repo
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8888/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+  # ─── Backend Microservices ───────────────────────────────────────────────────
+
+  core-service:
+    image: ${DOCKER_ORG}/elibrary-core-service:latest
+    restart: unless-stopped
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://core-db:5432/${CORE_DB_NAME}
+      SPRING_DATASOURCE_USERNAME: ${CORE_DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${CORE_DB_PASSWORD}
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      EUREKA_URI: http://eureka-server:8761/eureka/
+    depends_on:
+      core-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      config-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8081/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  support-service:
+    image: ${DOCKER_ORG}/elibrary-support-service:latest
+    restart: unless-stopped
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://support-db:5432/${SUPPORT_DB_NAME}
+      SPRING_DATASOURCE_USERNAME: ${SUPPORT_DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${SUPPORT_DB_PASSWORD}
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      CORE_SERVICE_URL: http://core-service:8081
+      EUREKA_URI: http://eureka-server:8761/eureka/
+    depends_on:
+      support-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      core-service:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      config-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8082/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  # ─── Entry Points (publicly exposed) ────────────────────────────────────────
+
+  api-gateway:
+    image: ${DOCKER_ORG}/elibrary-api-gateway:latest
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      EUREKA_URI: http://eureka-server:8761/eureka/
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      core-service:
+        condition: service_healthy
+      support-service:
+        condition: service_healthy
+
+  frontend:
+    image: ${DOCKER_ORG}/elibrary-frontend:latest
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+
+volumes:
+  core-db-data:
+  support-db-data:
+  rabbitmq-data:
