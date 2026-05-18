@@ -31,7 +31,7 @@ class CoreServiceClientIntegrationTest {
         boolean exists = client.bookExists(42L);
 
         assertThat(exists).isTrue();
-        assertThat(coreService.takeRequest(1, TimeUnit.SECONDS).getPath()).isEqualTo("/api/books/42");
+        assertThat(coreService.takeRequest(1, TimeUnit.SECONDS).getPath()).isEqualTo("/api/internal/books/42/exists");
     }
 
     @Test
@@ -43,7 +43,7 @@ class CoreServiceClientIntegrationTest {
         boolean exists = client.bookExists(99L);
 
         assertThat(exists).isFalse();
-        assertThat(coreService.takeRequest(1, TimeUnit.SECONDS).getPath()).isEqualTo("/api/books/99");
+        assertThat(coreService.takeRequest(1, TimeUnit.SECONDS).getPath()).isEqualTo("/api/internal/books/99/exists");
     }
 
     @Test

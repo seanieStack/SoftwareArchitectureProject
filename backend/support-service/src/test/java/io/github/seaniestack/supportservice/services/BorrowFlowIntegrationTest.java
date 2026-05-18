@@ -95,7 +95,7 @@ class BorrowFlowIntegrationTest {
         assertThat(response.body()).contains("\"status\":\"BORROWED\"");
 
         assertThat(borrowRepository.findAll()).hasSize(1);
-        assertThat(coreService.takeRequest(1, TimeUnit.SECONDS).getPath()).isEqualTo("/api/books/42");
+        assertThat(coreService.takeRequest(1, TimeUnit.SECONDS).getPath()).isEqualTo("/api/internal/books/42/exists");
         verify(eventPublisher).publishBorrowCreated(argThat((BorrowCreatedEvent event) ->
                 event.userId().equals(17L) && event.bookId().equals(42L) && event.deadline().equals(deadline)));
     }
@@ -114,7 +114,7 @@ class BorrowFlowIntegrationTest {
         assertThat(response.statusCode()).isEqualTo(404);
 
         assertThat(borrowRepository.findAll()).isEmpty();
-        assertThat(coreService.takeRequest(1, TimeUnit.SECONDS).getPath()).isEqualTo("/api/books/999");
+        assertThat(coreService.takeRequest(1, TimeUnit.SECONDS).getPath()).isEqualTo("/api/internal/books/999/exists");
         verify(eventPublisher, never()).publishBorrowCreated(org.mockito.ArgumentMatchers.any());
     }
 
