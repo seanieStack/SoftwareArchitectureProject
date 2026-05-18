@@ -47,6 +47,9 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
+      - name: Set up QEMU for multi-arch builds
+        uses: docker/setup-qemu-action@v3
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -54,6 +57,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ./backend/${{ matrix.service }}
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ env.DOCKER_ORG }}/elibrary-${{ matrix.service }}:latest
           cache-from: type=gha,scope=${{ matrix.service }}
@@ -76,6 +80,9 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
+      - name: Set up QEMU for multi-arch builds
+        uses: docker/setup-qemu-action@v3
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -83,6 +90,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ./frontend
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ env.DOCKER_ORG }}/elibrary-frontend:latest
           cache-from: type=gha,scope=frontend
@@ -132,6 +140,9 @@ jobs:
             SUPPORT_DB_NAME=${{ secrets.SUPPORT_DB_NAME }}
             RABBITMQ_USER=${{ secrets.RABBITMQ_USER }}
             RABBITMQ_PASSWORD=${{ secrets.RABBITMQ_PASSWORD }}
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            INTERNAL_SECRET=${{ secrets.INTERNAL_SECRET }}
+            FRONTEND_BASE_URL=${{ secrets.FRONTEND_BASE_URL }}
             EOF
 
             # Pull the latest images we just pushed

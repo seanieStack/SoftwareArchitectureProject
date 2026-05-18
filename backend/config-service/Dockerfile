@@ -10,6 +10,7 @@ RUN ./mvnw package -DskipTests -q
 # Stage 2: Runtime — use the lean JRE image (no compiler tools)
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
+RUN apk add --no-cache curl
 COPY --from=build /app/target/*.jar app.jar
 EXPOSE 8888
 ENTRYPOINT ["java", "-jar", "app.jar"]

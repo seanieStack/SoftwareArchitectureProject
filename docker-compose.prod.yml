@@ -53,7 +53,7 @@ services:
   # ─── Service Discovery & Config ─────────────────────────────────────────────
 
   eureka-server:
-    image: ${DOCKER_ORG}/elibrary-eureka-server:latest
+    image: ${DOCKER_ORG:?Set DOCKER_ORG}/elibrary-eureka-server:latest
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8761/actuator/health || exit 1"]
@@ -63,10 +63,11 @@ services:
       start_period: 40s
 
   config-service:
-    image: ${DOCKER_ORG}/elibrary-config-service:latest
+    image: ${DOCKER_ORG:?Set DOCKER_ORG}/elibrary-config-service:latest
     restart: unless-stopped
     environment:
       EUREKA_URI: http://eureka-server:8761/eureka/
+      SPRING_PROFILES_ACTIVE: native
     volumes:
       # The config repository must be cloned on the server at ~/config-repo before first deploy.
       # See scripts/setup-vm.sh for instructions.
@@ -84,7 +85,7 @@ services:
   # ─── Backend Microservices ───────────────────────────────────────────────────
 
   core-service:
-    image: ${DOCKER_ORG}/elibrary-core-service:latest
+    image: ${DOCKER_ORG:?Set DOCKER_ORG}/elibrary-core-service:latest
     restart: unless-stopped
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://core-db:5432/${CORE_DB_NAME}
@@ -94,6 +95,10 @@ services:
       SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER}
       SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
       EUREKA_URI: http://eureka-server:8761/eureka/
+      CONFIG_SERVER_URI: http://config-service:8888
+      FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-https://elibrary.example.com}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET}
+      INTERNAL_SECRET: ${INTERNAL_SECRET:?Set INTERNAL_SECRET}
     depends_on:
       core-db:
         condition: service_healthy
@@ -111,7 +116,7 @@ services:
       start_period: 60s
 
   support-service:
-    image: ${DOCKER_ORG}/elibrary-support-service:latest
+    image: ${DOCKER_ORG:?Set DOCKER_ORG}/elibrary-support-service:latest
     restart: unless-stopped
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://support-db:5432/${SUPPORT_DB_NAME}
@@ -122,6 +127,8 @@ services:
       SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
       CORE_SERVICE_URL: http://core-service:8081
       EUREKA_URI: http://eureka-server:8761/eureka/
+      CONFIG_SERVER_URI: http://config-service:8888
+      INTERNAL_SECRET: ${INTERNAL_SECRET:?Set INTERNAL_SECRET}
     depends_on:
       support-db:
         condition: service_healthy
@@ -143,12 +150,14 @@ services:
   # ─── Entry Points (publicly exposed) ────────────────────────────────────────
 
   api-gateway:
-    image: ${DOCKER_ORG}/elibrary-api-gateway:latest
+    image: ${DOCKER_ORG:?Set DOCKER_ORG}/elibrary-api-gateway:latest
     restart: unless-stopped
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
     environment:
       EUREKA_URI: http://eureka-server:8761/eureka/
+      CONFIG_SERVER_URI: http://config-service:8888
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET}
     depends_on:
       eureka-server:
         condition: service_healthy
@@ -158,10 +167,10 @@ services:
         condition: service_healthy
 
   frontend:
-    image: ${DOCKER_ORG}/elibrary-frontend:latest
+    image: ${DOCKER_ORG:?Set DOCKER_ORG}/elibrary-frontend:latest
     restart: unless-stopped
     ports:
-      - "3000:80"
+      - "127.0.0.1:3000:80"
 
 volumes:
   core-db-data:

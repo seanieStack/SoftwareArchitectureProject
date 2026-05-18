@@ -211,6 +211,9 @@ Go to **Settings → Secrets and variables → Actions** and add:
 | `SUPPORT_DB_NAME` | Database name for support-db |
 | `RABBITMQ_USER` | RabbitMQ username |
 | `RABBITMQ_PASSWORD` | RabbitMQ password |
+| `JWT_SECRET` | Long random secret used to sign JWTs |
+| `INTERNAL_SECRET` | Shared secret for service-to-service internal calls |
+| `FRONTEND_BASE_URL` | Public frontend URL, for example `https://elibrary.example.com` |
 
 ### Step 3 — Deploy
 
