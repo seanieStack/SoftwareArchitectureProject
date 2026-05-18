@@ -41,6 +41,13 @@ export function AdminAnalyticsPage() {
       .finally(() => setLoading(false))
   }, [])
 
+  const returnedBorrows = data
+    ? Math.max(data.totalBorrows - data.activeBorrows - data.overdueBorrows, 0)
+    : 0
+  const loanTotal = data
+    ? data.activeBorrows + data.overdueBorrows + returnedBorrows
+    : 0
+
   return (
     <DashboardShell roleLabel="Administrator" navItems={[...ADMIN_DASHBOARD_NAV]}>
       <div className="mx-auto max-w-4xl space-y-6">
@@ -59,22 +66,21 @@ export function AdminAnalyticsPage() {
                 Loan status
               </h2>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <MetricCard label="Active loans" value={data.activeLoans} accent="green" />
-                <MetricCard label="Overdue loans" value={data.overdueLoans} accent="red" />
-                <MetricCard label="Returned (all time)" value={data.returnedLoans} accent="blue" />
-                <MetricCard label="Outstanding fines" value={data.outstandingFines} accent="amber" />
+                <MetricCard label="Active loans" value={data.activeBorrows} accent="green" />
+                <MetricCard label="Overdue loans" value={data.overdueBorrows} accent="red" />
+                <MetricCard label="Returned (all time)" value={returnedBorrows} accent="blue" />
+                <MetricCard label="Outstanding fines" value={data.unpaidFines} accent="amber" />
               </div>
             </div>
 
             <div className="rounded-xl border border-gray-200/80 bg-white p-6 shadow-sm">
               <h2 className="mb-4 text-sm font-semibold text-gray-700">Loan breakdown</h2>
               {(() => {
-                const total = data.activeLoans + data.overdueLoans + data.returnedLoans
-                if (total === 0) return <p className="text-sm text-gray-400">No loan data yet.</p>
+                if (loanTotal === 0) return <p className="text-sm text-gray-400">No loan data yet.</p>
                 const bars: { label: string; count: number; colour: string }[] = [
-                  { label: 'Active', count: data.activeLoans, colour: 'bg-emerald-500' },
-                  { label: 'Overdue', count: data.overdueLoans, colour: 'bg-red-500' },
-                  { label: 'Returned', count: data.returnedLoans, colour: 'bg-blue-400' },
+                  { label: 'Active', count: data.activeBorrows, colour: 'bg-emerald-500' },
+                  { label: 'Overdue', count: data.overdueBorrows, colour: 'bg-red-500' },
+                  { label: 'Returned', count: returnedBorrows, colour: 'bg-blue-400' },
                 ]
                 return (
                   <div className="space-y-3">
@@ -87,7 +93,7 @@ export function AdminAnalyticsPage() {
                         <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">
                           <div
                             className={`h-2 rounded-full ${b.colour}`}
-                            style={{ width: `${Math.round((b.count / total) * 100)}%` }}
+                            style={{ width: `${Math.round((b.count / loanTotal) * 100)}%` }}
                           />
                         </div>
                       </div>

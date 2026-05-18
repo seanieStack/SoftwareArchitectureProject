@@ -4,3 +4,5 @@ backend/api-gateway/target
 backend/support-service/target
 .vscode/settings.json
 .env
+*.key
+*.pem
