@@ -44,10 +44,6 @@ public class Book {
     @Builder.Default
     private Set<Category> categories = new HashSet<>();
 
-    @OneToMany(mappedBy = "book", cascade = CascadeType.ALL, orphanRemoval = true)
-    @Builder.Default
-    private Set<BookCopy> copies = new HashSet<>();
-
     @Column(nullable = false)
     private Integer totalCopies;
 
