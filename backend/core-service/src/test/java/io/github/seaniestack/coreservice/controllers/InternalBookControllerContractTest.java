@@ -11,7 +11,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Optional;
 
@@ -31,7 +30,6 @@ class InternalBookControllerContractTest {
     @BeforeEach
     void setUp() {
         controller = new InternalBookController(bookRepository);
-        ReflectionTestUtils.setField(controller, "internalSecret", "test-internal-secret");
     }
 
     @Test
@@ -39,7 +37,7 @@ class InternalBookControllerContractTest {
     void existsEndpoint_returns200ForExistingBook() {
         when(bookRepository.existsById(42L)).thenReturn(true);
 
-        ResponseEntity<Void> response = controller.bookExists(42L, "test-internal-secret");
+        ResponseEntity<Void> response = controller.bookExists(42L);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
@@ -49,17 +47,9 @@ class InternalBookControllerContractTest {
     void existsEndpoint_returns404ForMissingBook() {
         when(bookRepository.existsById(9999L)).thenReturn(false);
 
-        ResponseEntity<Void> response = controller.bookExists(9999L, "test-internal-secret");
+        ResponseEntity<Void> response = controller.bookExists(9999L);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
-    }
-
-    @Test
-    @DisplayName("CONTRACT-BOOK-EXISTS-403 provider returns 403 when the internal secret is missing")
-    void existsEndpoint_returns403WhenSecretMissing() {
-        ResponseEntity<Void> response = controller.bookExists(42L, null);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
     }
 
     @Test
@@ -75,7 +65,7 @@ class InternalBookControllerContractTest {
         book.publish();
         when(bookRepository.findById(42L)).thenReturn(Optional.of(book));
 
-        ResponseEntity<Void> response = controller.borrowCopy(42L, "test-internal-secret");
+        ResponseEntity<Void> response = controller.borrowCopy(42L);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(book.getAvailableCopies()).isEqualTo(1);
@@ -95,7 +85,7 @@ class InternalBookControllerContractTest {
         book.publish();
         when(bookRepository.findById(42L)).thenReturn(Optional.of(book));
 
-        ResponseEntity<Void> response = controller.returnCopy(42L, "test-internal-secret");
+        ResponseEntity<Void> response = controller.returnCopy(42L);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(book.getAvailableCopies()).isEqualTo(2);
@@ -107,7 +97,7 @@ class InternalBookControllerContractTest {
     void borrowEndpoint_returns404ForMissingBook() {
         when(bookRepository.findById(42L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> controller.borrowCopy(42L, "test-internal-secret"))
+        assertThatThrownBy(() -> controller.borrowCopy(42L))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 }
