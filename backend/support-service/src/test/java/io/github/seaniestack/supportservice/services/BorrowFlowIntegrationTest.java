@@ -5,17 +5,18 @@ import io.github.seaniestack.supportservice.repositories.BorrowRepository;
 import io.github.seaniestack.supportservice.repositories.NotificationRepository;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
+import java.io.IOException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -27,6 +28,7 @@ import java.util.concurrent.TimeUnit;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class BorrowFlowIntegrationTest {
 
     private static MockWebServer coreService;
@@ -46,31 +48,29 @@ class BorrowFlowIntegrationTest {
     private int startingRequestCount;
     private HttpClient httpClient;
 
-    @BeforeAll
-    static void beforeAll() throws Exception {
-        coreService = new MockWebServer();
-        coreService.start();
-    }
-
-    @AfterAll
-    static void afterAll() throws Exception {
-        coreService.shutdown();
-    }
-
     @DynamicPropertySource
     static void overrideProperties(DynamicPropertyRegistry registry) {
-        registry.add("core-service.url", () -> coreService.url("/").toString());
+        registry.add("core-service.url", () -> coreService().url("/").toString());
     }
 
     @BeforeEach
     void setUp() throws Exception {
+        MockWebServer server = coreService();
         borrowRepository.deleteAll();
         notificationRepository.deleteAll();
         while (coreService.takeRequest(10, TimeUnit.MILLISECONDS) != null) {
             // Drain requests left behind by timeout scenarios so assertions stay deterministic.
         }
-        startingRequestCount = coreService.getRequestCount();
+        startingRequestCount = server.getRequestCount();
         httpClient = HttpClient.newHttpClient();
+    }
+
+    @AfterEach
+    void tearDown() throws IOException {
+        if (coreService != null) {
+            coreService.shutdown();
+            coreService = null;
+        }
     }
 
     @Test
@@ -167,5 +167,17 @@ class BorrowFlowIntegrationTest {
                 .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(body)))
                 .build();
         return httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+    }
+
+    private static synchronized MockWebServer coreService() {
+        if (coreService == null) {
+            coreService = new MockWebServer();
+            try {
+                coreService.start();
+            } catch (IOException e) {
+                throw new IllegalStateException("Failed to start mock core-service", e);
+            }
+        }
+        return coreService;
     }
 }
