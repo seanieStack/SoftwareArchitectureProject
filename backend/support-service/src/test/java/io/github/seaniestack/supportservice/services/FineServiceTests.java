@@ -5,7 +5,6 @@ import io.github.seaniestack.supportservice.entities.Borrow;
 import io.github.seaniestack.supportservice.entities.BorrowStatus;
 import io.github.seaniestack.supportservice.entities.Fine;
 import io.github.seaniestack.supportservice.exceptions.ResourceNotFoundException;
-import io.github.seaniestack.supportservice.messaging.EventPublisher;
 import io.github.seaniestack.supportservice.repositories.BorrowRepository;
 import io.github.seaniestack.supportservice.repositories.FineRepository;
 import org.junit.jupiter.api.Test;
@@ -35,7 +34,7 @@ class FineServiceTests {
     BorrowRepository borrowRepository;
 
     @Mock
-    EventPublisher eventPublisher;
+    NotificationService notificationService;
 
     @InjectMocks
     FineService fineService;

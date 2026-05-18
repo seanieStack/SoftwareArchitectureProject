@@ -1,9 +1,8 @@
 package io.github.seaniestack.supportservice.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.github.seaniestack.supportservice.messaging.EventPublisher;
-import io.github.seaniestack.supportservice.messaging.events.BorrowCreatedEvent;
 import io.github.seaniestack.supportservice.repositories.BorrowRepository;
+import io.github.seaniestack.supportservice.repositories.NotificationRepository;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import org.junit.jupiter.api.AfterAll;
@@ -16,7 +15,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -27,9 +25,6 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class BorrowFlowIntegrationTest {
@@ -42,11 +37,11 @@ class BorrowFlowIntegrationTest {
     @Autowired
     private BorrowRepository borrowRepository;
 
+    @Autowired
+    private NotificationRepository notificationRepository;
+
     @LocalServerPort
     private int port;
-
-    @MockitoBean
-    private EventPublisher eventPublisher;
 
     private int startingRequestCount;
     private HttpClient httpClient;
@@ -70,6 +65,7 @@ class BorrowFlowIntegrationTest {
     @BeforeEach
     void setUp() throws Exception {
         borrowRepository.deleteAll();
+        notificationRepository.deleteAll();
         while (coreService.takeRequest(10, TimeUnit.MILLISECONDS) != null) {
             // Drain requests left behind by timeout scenarios so assertions stay deterministic.
         }
@@ -78,8 +74,8 @@ class BorrowFlowIntegrationTest {
     }
 
     @Test
-    @DisplayName("SCN-BORROW-001 creates a borrow when catalogue confirms the book exists and has copies")
-    void createBorrow_persistsBorrowAndPublishesEvent() throws Exception {
+    @DisplayName("SCN-BORROW-001 creates a borrow and a notification when catalogue confirms the book exists and has copies")
+    void createBorrow_persistsBorrowAndCreatesNotification() throws Exception {
         coreService.enqueue(new MockResponse().setResponseCode(200)); // bookExists
         coreService.enqueue(new MockResponse().setResponseCode(200)); // borrowBook (stock decrement)
         LocalDateTime deadline = LocalDateTime.of(2026, 4, 30, 12, 0);
@@ -96,12 +92,11 @@ class BorrowFlowIntegrationTest {
         assertThat(response.body()).contains("\"status\":\"BORROWED\"");
 
         assertThat(borrowRepository.findAll()).hasSize(1);
+        assertThat(notificationRepository.findAll()).hasSize(1);
         assertThat(coreService.takeRequest(1, TimeUnit.SECONDS).getPath())
                 .isEqualTo("/api/internal/books/42/exists");
         assertThat(coreService.takeRequest(1, TimeUnit.SECONDS).getPath())
                 .isEqualTo("/api/internal/books/42/borrow");
-        verify(eventPublisher).publishBorrowCreated(argThat((BorrowCreatedEvent event) ->
-                event.userId().equals(17L) && event.bookId().equals(42L) && event.deadline().equals(deadline)));
     }
 
     @Test
@@ -118,9 +113,9 @@ class BorrowFlowIntegrationTest {
         assertThat(response.statusCode()).isEqualTo(404);
 
         assertThat(borrowRepository.findAll()).isEmpty();
+        assertThat(notificationRepository.findAll()).isEmpty();
         assertThat(coreService.takeRequest(1, TimeUnit.SECONDS).getPath())
                 .isEqualTo("/api/internal/books/999/exists");
-        verify(eventPublisher, never()).publishBorrowCreated(org.mockito.ArgumentMatchers.any());
     }
 
     @Test
@@ -140,7 +135,7 @@ class BorrowFlowIntegrationTest {
 
         assertThat(coreService.getRequestCount() - startingRequestCount).isEqualTo(3);
         assertThat(borrowRepository.findAll()).isEmpty();
-        verify(eventPublisher, never()).publishBorrowCreated(org.mockito.ArgumentMatchers.any());
+        assertThat(notificationRepository.findAll()).isEmpty();
     }
 
     @Test
@@ -160,7 +155,7 @@ class BorrowFlowIntegrationTest {
 
         assertThat(response.statusCode()).isEqualTo(503);
         assertThat(borrowRepository.findAll()).isEmpty();
-        verify(eventPublisher, never()).publishBorrowCreated(org.mockito.ArgumentMatchers.any());
+        assertThat(notificationRepository.findAll()).isEmpty();
     }
 
     private HttpResponse<String> sendBorrowRequest(Map<String, Object> body) throws Exception {

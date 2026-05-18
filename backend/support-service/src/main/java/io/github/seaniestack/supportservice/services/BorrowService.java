@@ -5,9 +5,8 @@ import io.github.seaniestack.supportservice.dtos.BorrowDTO;
 import io.github.seaniestack.supportservice.dtos.BorrowRequest;
 import io.github.seaniestack.supportservice.entities.Borrow;
 import io.github.seaniestack.supportservice.entities.BorrowStatus;
+import io.github.seaniestack.supportservice.entities.NotificationType;
 import io.github.seaniestack.supportservice.exceptions.ResourceNotFoundException;
-import io.github.seaniestack.supportservice.messaging.EventPublisher;
-import io.github.seaniestack.supportservice.messaging.events.BorrowCreatedEvent;
 import io.github.seaniestack.supportservice.repositories.BorrowRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -24,7 +23,7 @@ public class BorrowService {
 
     private final BorrowRepository borrowRepository;
     private final CoreServiceClient coreServiceClient;
-    private final EventPublisher eventPublisher;
+    private final NotificationService notificationService;
 
     public List<BorrowDTO> getBorrowsForUser(Long userId) {
         log.debug("Fetching borrows for user {}", userId);
@@ -70,8 +69,10 @@ public class BorrowService {
         borrowRepository.save(borrow);
         log.info("Created borrow {} for user {} book {}", borrow.getId(), request.userId(), request.bookId());
 
-        eventPublisher.publishBorrowCreated(new BorrowCreatedEvent(
-                borrow.getId(), borrow.getUserId(), borrow.getBookId(), borrow.getDeadline()));
+        notificationService.createNotification(
+                borrow.getUserId(),
+                NotificationType.BORROW_CREATED,
+                "You borrowed book %d. Due by %s.".formatted(borrow.getBookId(), borrow.getDeadline().toLocalDate()));
 
         return BorrowDTO.from(borrow);
     }
