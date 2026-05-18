@@ -16,6 +16,8 @@ public interface BorrowRepository extends JpaRepository<Borrow, Long> {
 
     boolean existsByBookIdAndStatusIn(Long bookId, List<BorrowStatus> statuses);
 
+    List<Borrow> findByBookIdAndStatusIn(Long bookId, List<BorrowStatus> statuses);
+
     List<Borrow> findByDeadlineBetweenAndStatus(LocalDateTime from, LocalDateTime to, BorrowStatus status);
 
     long countByStatus(BorrowStatus status);

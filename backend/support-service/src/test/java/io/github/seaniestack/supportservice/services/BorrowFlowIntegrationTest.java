@@ -1,9 +1,8 @@
 package io.github.seaniestack.supportservice.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.github.seaniestack.supportservice.messaging.EventPublisher;
-import io.github.seaniestack.supportservice.messaging.events.BorrowCreatedEvent;
 import io.github.seaniestack.supportservice.repositories.BorrowRepository;
+import io.github.seaniestack.supportservice.repositories.NotificationRepository;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import org.junit.jupiter.api.AfterEach;
@@ -16,7 +15,6 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.io.IOException;
 import java.net.http.HttpClient;
@@ -28,9 +26,6 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
@@ -44,11 +39,11 @@ class BorrowFlowIntegrationTest {
     @Autowired
     private BorrowRepository borrowRepository;
 
+    @Autowired
+    private NotificationRepository notificationRepository;
+
     @LocalServerPort
     private int port;
-
-    @MockitoBean
-    private EventPublisher eventPublisher;
 
     private int startingRequestCount;
     private HttpClient httpClient;
@@ -62,7 +57,8 @@ class BorrowFlowIntegrationTest {
     void setUp() throws Exception {
         MockWebServer server = coreService();
         borrowRepository.deleteAll();
-        while (server.takeRequest(10, TimeUnit.MILLISECONDS) != null) {
+        notificationRepository.deleteAll();
+        while (coreService.takeRequest(10, TimeUnit.MILLISECONDS) != null) {
             // Drain requests left behind by timeout scenarios so assertions stay deterministic.
         }
         startingRequestCount = server.getRequestCount();
@@ -78,10 +74,10 @@ class BorrowFlowIntegrationTest {
     }
 
     @Test
-    @DisplayName("SCN-BORROW-001 creates a borrow when catalogue confirms the book exists")
-    void createBorrow_persistsBorrowAndPublishesEvent() throws Exception {
-        coreService.enqueue(new MockResponse().setResponseCode(200));
-        coreService.enqueue(new MockResponse().setResponseCode(200));
+    @DisplayName("SCN-BORROW-001 creates a borrow and a notification when catalogue confirms the book exists and has copies")
+    void createBorrow_persistsBorrowAndCreatesNotification() throws Exception {
+        coreService.enqueue(new MockResponse().setResponseCode(200)); // bookExists
+        coreService.enqueue(new MockResponse().setResponseCode(200)); // borrowBook (stock decrement)
         LocalDateTime deadline = LocalDateTime.of(2026, 4, 30, 12, 0);
 
         HttpResponse<String> response = sendBorrowRequest(Map.of(
@@ -96,16 +92,17 @@ class BorrowFlowIntegrationTest {
         assertThat(response.body()).contains("\"status\":\"BORROWED\"");
 
         assertThat(borrowRepository.findAll()).hasSize(1);
-        assertThat(coreService.takeRequest(1, TimeUnit.SECONDS).getPath()).isEqualTo("/api/internal/books/42/exists");
-        assertThat(coreService.takeRequest(1, TimeUnit.SECONDS).getPath()).isEqualTo("/api/internal/books/42/borrow");
-        verify(eventPublisher).publishBorrowCreated(argThat((BorrowCreatedEvent event) ->
-                event.userId().equals(17L) && event.bookId().equals(42L) && event.deadline().equals(deadline)));
+        assertThat(notificationRepository.findAll()).hasSize(1);
+        assertThat(coreService.takeRequest(1, TimeUnit.SECONDS).getPath())
+                .isEqualTo("/api/internal/books/42/exists");
+        assertThat(coreService.takeRequest(1, TimeUnit.SECONDS).getPath())
+                .isEqualTo("/api/internal/books/42/borrow");
     }
 
     @Test
     @DisplayName("SCN-BORROW-002 rejects a borrow when catalogue reports the book is missing")
     void createBorrow_returns404WhenCatalogueDoesNotKnowBook() throws Exception {
-        coreService.enqueue(new MockResponse().setResponseCode(404));
+        coreService.enqueue(new MockResponse().setResponseCode(404)); // bookExists → 404
 
         HttpResponse<String> response = sendBorrowRequest(Map.of(
                 "userId", 17,
@@ -116,12 +113,13 @@ class BorrowFlowIntegrationTest {
         assertThat(response.statusCode()).isEqualTo(404);
 
         assertThat(borrowRepository.findAll()).isEmpty();
-        assertThat(coreService.takeRequest(1, TimeUnit.SECONDS).getPath()).isEqualTo("/api/internal/books/999/exists");
-        verify(eventPublisher, never()).publishBorrowCreated(org.mockito.ArgumentMatchers.any());
+        assertThat(notificationRepository.findAll()).isEmpty();
+        assertThat(coreService.takeRequest(1, TimeUnit.SECONDS).getPath())
+                .isEqualTo("/api/internal/books/999/exists");
     }
 
     @Test
-    @DisplayName("SCN-BORROW-003 returns 503 after retries when catalogue is unavailable")
+    @DisplayName("SCN-BORROW-003 returns 503 after retries when catalogue is unavailable during existence check")
     void createBorrow_returns503WhenCatalogueTimesOut() throws Exception {
         coreService.enqueue(new MockResponse().setHeadersDelay(400, TimeUnit.MILLISECONDS).setResponseCode(200));
         coreService.enqueue(new MockResponse().setHeadersDelay(400, TimeUnit.MILLISECONDS).setResponseCode(200));
@@ -137,7 +135,27 @@ class BorrowFlowIntegrationTest {
 
         assertThat(coreService.getRequestCount() - startingRequestCount).isEqualTo(3);
         assertThat(borrowRepository.findAll()).isEmpty();
-        verify(eventPublisher, never()).publishBorrowCreated(org.mockito.ArgumentMatchers.any());
+        assertThat(notificationRepository.findAll()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("SCN-BORROW-004 does not persist a borrow record when the stock decrement fails")
+    void createBorrow_doesNotPersistBorrowWhenStockDecrementFails() throws Exception {
+        coreService.enqueue(new MockResponse().setResponseCode(200)); // bookExists → ok
+        // borrowBook retries exhaust — simulate core-service timing out on all attempts
+        coreService.enqueue(new MockResponse().setHeadersDelay(400, TimeUnit.MILLISECONDS).setResponseCode(200));
+        coreService.enqueue(new MockResponse().setHeadersDelay(400, TimeUnit.MILLISECONDS).setResponseCode(200));
+        coreService.enqueue(new MockResponse().setHeadersDelay(400, TimeUnit.MILLISECONDS).setResponseCode(200));
+
+        HttpResponse<String> response = sendBorrowRequest(Map.of(
+                "userId", 17,
+                "bookId", 42,
+                "deadline", LocalDateTime.of(2026, 4, 30, 12, 0).toString()
+        ));
+
+        assertThat(response.statusCode()).isEqualTo(503);
+        assertThat(borrowRepository.findAll()).isEmpty();
+        assertThat(notificationRepository.findAll()).isEmpty();
     }
 
     private HttpResponse<String> sendBorrowRequest(Map<String, Object> body) throws Exception {

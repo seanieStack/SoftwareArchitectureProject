@@ -9,49 +9,23 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class RabbitMQConfig {
 
-    public static final String EXCHANGE = "support.events";
-
-    public static final String BORROW_CREATED_KEY = "borrow.created";
-    public static final String BORROW_DUE_SOON_KEY = "borrow.due-soon";
-    public static final String FINE_CREATED_KEY = "fine.created";
-
-    public static final String BORROW_CREATED_QUEUE = "notifications.borrow.created";
-    public static final String BORROW_DUE_SOON_QUEUE = "notifications.borrow.due-soon";
-    public static final String FINE_CREATED_QUEUE = "notifications.fine.created";
+    public static final String CORE_EVENTS_EXCHANGE = "core.events";
+    public static final String BOOK_REMOVED_ROUTING_KEY = "book.removed";
+    public static final String BOOK_REMOVED_QUEUE = "support.book.removed";
 
     @Bean
-    public TopicExchange supportExchange() {
-        return new TopicExchange(EXCHANGE);
+    public TopicExchange coreEventsExchange() {
+        return new TopicExchange(CORE_EVENTS_EXCHANGE);
     }
 
     @Bean
-    public Queue borrowCreatedQueue() {
-        return QueueBuilder.durable(BORROW_CREATED_QUEUE).build();
+    public Queue bookRemovedQueue() {
+        return QueueBuilder.durable(BOOK_REMOVED_QUEUE).build();
     }
 
     @Bean
-    public Queue borrowDueSoonQueue() {
-        return QueueBuilder.durable(BORROW_DUE_SOON_QUEUE).build();
-    }
-
-    @Bean
-    public Queue fineCreatedQueue() {
-        return QueueBuilder.durable(FINE_CREATED_QUEUE).build();
-    }
-
-    @Bean
-    public Binding borrowCreatedBinding(Queue borrowCreatedQueue, TopicExchange supportExchange) {
-        return BindingBuilder.bind(borrowCreatedQueue).to(supportExchange).with(BORROW_CREATED_KEY);
-    }
-
-    @Bean
-    public Binding borrowDueSoonBinding(Queue borrowDueSoonQueue, TopicExchange supportExchange) {
-        return BindingBuilder.bind(borrowDueSoonQueue).to(supportExchange).with(BORROW_DUE_SOON_KEY);
-    }
-
-    @Bean
-    public Binding fineCreatedBinding(Queue fineCreatedQueue, TopicExchange supportExchange) {
-        return BindingBuilder.bind(fineCreatedQueue).to(supportExchange).with(FINE_CREATED_KEY);
+    public Binding bookRemovedBinding(Queue bookRemovedQueue, TopicExchange coreEventsExchange) {
+        return BindingBuilder.bind(bookRemovedQueue).to(coreEventsExchange).with(BOOK_REMOVED_ROUTING_KEY);
     }
 
     @Bean

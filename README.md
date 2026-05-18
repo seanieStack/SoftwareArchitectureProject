@@ -20,8 +20,10 @@ The project is build with a react frontend which communicates and a spring cloud
 |React|19.x|
 |TypeScript|5.9|
 |Vite|7.x|
-|Redux Toolkit|planned|
-|Axios| planned|
+|Redux Toolkit|2.11.x|
+|React Router|7.x|
+|Tailwind CSS|4.x|
+|Zod|4.x|
 |ESLint|9.x|
 
 ### Backend
@@ -29,12 +31,14 @@ The project is build with a react frontend which communicates and a spring cloud
 |---|---|
 |Spring Boot|4.0.2|
 |Java|21|
-|Maven|3.9.12|
-|Spring Security + JWT|planned|
-|Spring Cloud Gateway|planned|
-|Spring Data JPA|planned|
-|PostgreSQL|planned|
-|springdoc-openapi|planned|
+|Maven|3.9.x|
+|Spring Security + JWT (JJWT)|0.12.6|
+|Spring Cloud Gateway|2025.1.0|
+|Spring Cloud Netflix Eureka|2025.1.0|
+|Spring Cloud Config|2025.1.0|
+|Spring Data JPA|4.0.x|
+|PostgreSQL|17|
+|RabbitMQ|4.x|
 |Lombok|latest|
 
 ## Getting Started
@@ -55,7 +59,29 @@ cd e-library
 
 ## Environment Variables
 
-- not implemented
+Copy `.env.example` to `.env` and fill in your values before running via Docker Compose:
+
+```bash
+cp .env.example .env
+```
+
+| Variable | Description |
+|---|---|
+| `DOCKER_ORG` | Your Docker Hub username (for production builds) |
+| `CORE_DB_USER` | PostgreSQL user for core-db |
+| `CORE_DB_PASSWORD` | PostgreSQL password for core-db |
+| `CORE_DB_NAME` | Database name for core-db |
+| `SUPPORT_DB_USER` | PostgreSQL user for support-db |
+| `SUPPORT_DB_PASSWORD` | PostgreSQL password for support-db |
+| `SUPPORT_DB_NAME` | Database name for support-db |
+| `RABBITMQ_USER` | RabbitMQ username |
+| `RABBITMQ_PASSWORD` | RabbitMQ password |
+| `JWT_SECRET` | Long random secret used to sign JWTs (min 32 chars) |
+| `INTERNAL_SECRET` | Shared secret for service-to-service internal calls |
+| `FRONTEND_BASE_URL` | Public frontend URL (e.g. `http://localhost:5173`) |
+| `VITE_BACKEND_URL` | Backend URL used by the Vite dev server proxy |
+
+All services are wired together automatically when using Docker Compose. For local development without Compose, each service reads these values from the environment or falls back to safe defaults defined in its `application.yml`.
 
 ## Running the Project
 
@@ -81,9 +107,19 @@ cd backend/support-service
 ./mvnw spring-boot:run
 ```
 
-### API Gateway _(once implemented)_
+### API Gateway
 
-- not implemented
+```bash
+cd backend/api-gateway
+./mvnw spring-boot:run
+```
+
+The gateway starts on port **8080** and is the single entry point for all API requests. It requires `eureka-server` and `config-service` to be running first.
+
+> **Recommended:** Use Docker Compose to start all services together:
+> ```bash
+> docker compose up --build
+> ```
 
 More details available in [wiki](https://github.com/seanieStack/SoftwareArchitectureProject/wiki/Setup-Instructions).
 
@@ -140,7 +176,31 @@ All requests go through the API Gateway at `http://localhost:8080`.
 
 ## Authentication & Authorization
 
-- not implemented
+The project uses **JWT-based stateless authentication** enforced at the API Gateway layer.
+
+### Flow
+
+1. The client calls `POST /api/auth/login` (public, bypasses JWT check) and receives an `accessToken` and `refreshToken`.
+2. All subsequent requests must include the token in the `Authorization` header:
+   ```
+   Authorization: Bearer <accessToken>
+   ```
+3. The **API Gateway** (`JwtAuthenticationFilter`) validates the token on every request before routing it downstream. If the token is missing, expired, or invalid, the gateway returns `401 Unauthorized` immediately.
+4. On a valid token, the gateway strips any caller-supplied identity headers (prevents spoofing) and injects two verified headers for downstream services:
+   - `X-User-Id` — the authenticated user's ID
+   - `X-User-Role` — the user's role (`ROLE_USER` or `ROLE_ADMIN`)
+5. Downstream services (`core-service`, `support-service`) trust these headers via `GatewayHeaderAuthFilter` and apply Spring Security rules accordingly.
+
+### Roles
+
+| Role | Access |
+|---|---|
+| `ROLE_USER` | Browse books, borrow/return, view own fines and notifications |
+| `ROLE_ADMIN` | All user access + create/update/delete books, manage users, view analytics |
+
+### Token Refresh
+
+When the access token expires, call `POST /api/auth/refresh` with the refresh token to obtain a new access token without re-authenticating.
 
 
 ## Deployment
@@ -238,10 +298,10 @@ api  →  <Oracle VM IP>    # api.elibrary.example.com
 | Name | Role |
 |---|---|
 | Seanie Stack (22374302) | Backend Core Service Developer |
-| name (id) | role |
-| name (id) | role |
-| name (id) | role |
-
+| Jason Cushen (22342516) | Frontend Developer & Auth Service |
+| Ugochukwu Egbokwu (22359974) | Backend Developer & DevOps |
+| Leonardo Ilascu (22353046) | Backend Developer & Testing |
+| Mark Callan (22363246) | Team Lead & DevOps | 
 More details available in [wiki](https://github.com/seanieStack/SoftwareArchitectureProject/wiki/Team-Organization-And-Roles)
 
 
@@ -275,4 +335,3 @@ added filter for availiblity
 - Backend: follow standard spring conventions and use lombok to reduce boilerplate
 - Frontend: ESLint is required. Run `npm run lint` before requesting a pr
 - No hardcoded secrets, use proper .env conventions
-    

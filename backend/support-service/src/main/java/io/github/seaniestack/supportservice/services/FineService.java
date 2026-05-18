@@ -4,9 +4,8 @@ import io.github.seaniestack.supportservice.dtos.FineDTO;
 import io.github.seaniestack.supportservice.entities.Borrow;
 import io.github.seaniestack.supportservice.entities.BorrowStatus;
 import io.github.seaniestack.supportservice.entities.Fine;
+import io.github.seaniestack.supportservice.entities.NotificationType;
 import io.github.seaniestack.supportservice.exceptions.ResourceNotFoundException;
-import io.github.seaniestack.supportservice.messaging.EventPublisher;
-import io.github.seaniestack.supportservice.messaging.events.FineCreatedEvent;
 import io.github.seaniestack.supportservice.repositories.BorrowRepository;
 import io.github.seaniestack.supportservice.repositories.FineRepository;
 import jakarta.transaction.Transactional;
@@ -30,7 +29,7 @@ public class FineService {
 
     private final FineRepository fineRepository;
     private final BorrowRepository borrowRepository;
-    private final EventPublisher eventPublisher;
+    private final NotificationService notificationService;
 
     public List<FineDTO> getUnacknowledgedFines(Long userId) {
         log.debug("Fetching unacknowledged fines for user {}", userId);
@@ -95,8 +94,10 @@ public class FineService {
                         .build();
                 fineRepository.save(fine);
                 log.info("Created initial fine of {} for borrow {} (user {})", DAILY_RATE, borrow.getId(), borrow.getUserId());
-                eventPublisher.publishFineCreated(new FineCreatedEvent(
-                        fine.getId(), borrow.getId(), borrow.getUserId(), fine.getAmount()));
+                notificationService.createNotification(
+                        borrow.getUserId(),
+                        NotificationType.FINE_CREATED,
+                        "You have a new fine of €%.2f for borrow %d.".formatted(fine.getAmount(), borrow.getId()));
             }
         }
     }
@@ -127,8 +128,10 @@ public class FineService {
                                         .build();
                                 fineRepository.save(fine);
                                 log.info("Created new fine of {} for borrow {} (user {}) - previous fine was paid", DAILY_RATE, borrow.getId(), borrow.getUserId());
-                                eventPublisher.publishFineCreated(new FineCreatedEvent(
-                                        fine.getId(), borrow.getId(), borrow.getUserId(), fine.getAmount()));
+                                notificationService.createNotification(
+                                        borrow.getUserId(),
+                                        NotificationType.FINE_CREATED,
+                                        "You have a new fine of €%.2f for borrow %d.".formatted(fine.getAmount(), borrow.getId()));
                             }
                     );
         }

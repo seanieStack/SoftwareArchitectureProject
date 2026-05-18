@@ -6,8 +6,6 @@ import io.github.seaniestack.coreservice.repositories.BookRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,17 +17,8 @@ public class InternalBookController {
 
     private final BookRepository bookRepository;
 
-    @Value("${internal.secret}")
-    private String internalSecret;
-
     @GetMapping("/{bookId}/exists")
-    public ResponseEntity<Void> bookExists(
-            @PathVariable Long bookId,
-            @RequestHeader(value = "X-Internal-Secret", required = false) String secret
-    ) {
-        if (!internalSecret.equals(secret)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
+    public ResponseEntity<Void> bookExists(@PathVariable Long bookId) {
         boolean exists = bookRepository.existsById(bookId);
         return exists
                 ? ResponseEntity.ok().build()
@@ -38,13 +27,7 @@ public class InternalBookController {
 
     @PatchMapping("/{bookId}/borrow")
     @Transactional
-    public ResponseEntity<Void> borrowCopy(
-            @PathVariable Long bookId,
-            @RequestHeader(value = "X-Internal-Secret", required = false) String secret
-    ) {
-        if (!internalSecret.equals(secret)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
+    public ResponseEntity<Void> borrowCopy(@PathVariable Long bookId) {
         Book book = bookRepository.findById(bookId)
                 .orElseThrow(() -> new ResourceNotFoundException("Book not found. Id: " + bookId));
         book.borrowCopy();
@@ -55,13 +38,7 @@ public class InternalBookController {
 
     @PatchMapping("/{bookId}/return")
     @Transactional
-    public ResponseEntity<Void> returnCopy(
-            @PathVariable Long bookId,
-            @RequestHeader(value = "X-Internal-Secret", required = false) String secret
-    ) {
-        if (!internalSecret.equals(secret)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
+    public ResponseEntity<Void> returnCopy(@PathVariable Long bookId) {
         Book book = bookRepository.findById(bookId)
                 .orElseThrow(() -> new ResourceNotFoundException("Book not found. Id: " + bookId));
         book.returnCopy();
