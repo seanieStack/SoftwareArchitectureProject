@@ -6,10 +6,6 @@ import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
 import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryConfig;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.hc.client5.http.config.RequestConfig;
-import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
-import org.apache.hc.client5.http.impl.classic.HttpClients;
-import org.apache.hc.core5.util.Timeout;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
@@ -30,18 +26,9 @@ public class CoreServiceClient {
             CoreServiceClientProperties properties,
             @Value("${internal.secret}") String internalSecret
     ) {
-        RequestConfig requestConfig = RequestConfig.custom()
-                .setConnectTimeout(Timeout.of(properties.connectTimeout()))
-                .setResponseTimeout(Timeout.of(properties.readTimeout()))
-                .build();
-
-        CloseableHttpClient httpClient = HttpClients.custom()
-                .setDefaultRequestConfig(requestConfig)
-                .build();
-
         this.restClient = RestClient.builder()
                 .baseUrl(properties.url())
-                .requestFactory(new HttpComponentsClientHttpRequestFactory(httpClient))
+                .requestFactory(new HttpComponentsClientHttpRequestFactory())
                 .defaultHeader("X-Internal-Secret", internalSecret)
                 .build();
 
